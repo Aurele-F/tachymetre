@@ -127,7 +127,9 @@ function updateTripUI(tracker) {
   const avgKmh = tracker.getAverageSpeedKmh();
   const durationSec = tracker.getMovingTimeSeconds();
 
-  metricDistanceEl.innerHTML = `${distKm.toFixed(1)} <span class="unit">km</span>`;
+  // 2 décimales sous 1 km pour voir immédiatement les mètres défiler, 1 décimale au-delà
+  const formattedDist = distKm < 1.0 ? distKm.toFixed(2) : distKm.toFixed(1);
+  metricDistanceEl.innerHTML = `${formattedDist} <span class="unit">km</span>`;
   metricAvgEl.innerHTML = `${avgKmh.toFixed(1)} <span class="unit">km/h</span>`;
   metricDurationEl.textContent = tracker.formatDuration(durationSec);
 }
@@ -138,6 +140,14 @@ const isDemoMode = urlParams.get('demo') === '1';
 
 if (isDemoMode) {
   console.log('[Tachymètre] Mode simulation activé (?demo=1)');
+  // En mode démo, si le compteur est à zéro, initialiser un trajet actif pour visualiser la dynamique
+  if (tripTracker.getDistanceKm() === 0) {
+    tripTracker.restore({
+      distanceMeters: 1420, // 1.42 km
+      movingTimeMs: 215000  // 3 min 35 s (moyenne ~23.8 km/h)
+    });
+    updateTripUI(tripTracker);
+  }
   geoManager.startSimulation();
 } else {
   geoManager.start();

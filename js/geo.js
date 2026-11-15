@@ -163,42 +163,46 @@ export class GeoManager {
 
   /**
    * Démarre une simulation réaliste d'itinéraire cycliste pour le test et la démo.
+   * Génère des coordonnées géodésiques continues correspondant exactement à la vitesse.
    * @param {Array<{lat: number, lon: number, speedMps: number}>} [routePoints]
    */
   startSimulation(routePoints) {
     this.stop();
 
-    // Profil de simulation par défaut : démarrage, accélération à 28 km/h, arrêt feu, reprise
-    const defaultRoute = [
-      { lat: 48.8584, lon: 2.2945, speedMps: 0 },
-      { lat: 48.8586, lon: 2.2947, speedMps: 2.5 },  // ~9 km/h
-      { lat: 48.8590, lon: 2.2952, speedMps: 5.0 },  // ~18 km/h
-      { lat: 48.8596, lon: 2.2960, speedMps: 7.2 },  // ~26 km/h
-      { lat: 48.8603, lon: 2.2970, speedMps: 8.0 },  // ~28.8 km/h
-      { lat: 48.8610, lon: 2.2980, speedMps: 8.3 },  // ~30 km/h
-      { lat: 48.8615, lon: 2.2988, speedMps: 4.0 },  // décélération
-      { lat: 48.8617, lon: 2.2990, speedMps: 0 },    // feu rouge (vitesse 0)
-      { lat: 48.8617, lon: 2.2990, speedMps: 0 },    // arrêt prolongé
-      { lat: 48.8622, lon: 2.2995, speedMps: 4.5 },  // redémarrage
-      { lat: 48.8628, lon: 2.3005, speedMps: 7.5 }   // allure de croisière
-    ];
-
-    const points = routePoints && routePoints.length > 0 ? routePoints : defaultRoute;
-    let idx = 0;
-
     this.status = GPS_STATUS.SEARCHING;
     this.onStatus(this.status);
 
+    let curLat = 48.8584;
+    let curLon = 2.2945;
+
+    // Profil de vitesse réaliste en m/s (démarrage, vitesse de croisière 28-30 km/h, arrêt feu rouge, reprise)
+    const speedProfile = [
+      0, 2.2, 4.5, 6.2, 7.5, 8.0, 8.2, 8.4, 8.3, 8.5, 8.3, 8.2, // Accélération vers 30 km/h
+      8.3, 8.1, 8.4, 8.2, 8.5, 8.3, 8.2,                         // Allure de croisière (~30 km/h)
+      6.0, 3.5, 1.2, 0, 0, 0,                                    // Décélération et arrêt au feu rouge
+      2.5, 5.2, 7.2, 8.1, 8.3                                    // Redémarrage
+    ];
+
+    let step = 0;
+
     this.simulationTimer = setInterval(() => {
-      const pt = points[idx % points.length];
-      idx++;
+      const speedMps = speedProfile[step % speedProfile.length];
+      step++;
+
+      // Avancement géographique exact : à speedMps mètres par seconde, le vélo avance de speedMps mètres
+      if (speedMps > 0) {
+        const deltaLat = speedMps / 111139;
+        const deltaLon = speedMps / (111139 * Math.cos((curLat * Math.PI) / 180));
+        curLat += deltaLat;
+        curLon += deltaLon;
+      }
 
       this.handlePosition({
         coords: {
-          latitude: pt.lat,
-          longitude: pt.lon,
-          speed: pt.speedMps,
-          accuracy: 8
+          latitude: curLat,
+          longitude: curLon,
+          speed: speedMps,
+          accuracy: 6
         },
         timestamp: Date.now()
       });
