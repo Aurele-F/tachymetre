@@ -107,11 +107,12 @@ describe('Module speed-filter', () => {
     assert.strictEqual(formatSpeed(24.8), '25');
   });
 
-  test('formatAverageSpeed renvoie "--" si la moyenne est nulle ou indisponible, sinon 1 décimale', () => {
-    assert.strictEqual(formatAverageSpeed(0), '--');
+  test('formatAverageSpeed renvoie "--" si la moyenne est null ou indisponible, et "0.0" pour 0', () => {
     assert.strictEqual(formatAverageSpeed(null), '--');
     assert.strictEqual(formatAverageSpeed(undefined), '--');
-    assert.strictEqual(formatAverageSpeed(-5), '--');
+    assert.strictEqual(formatAverageSpeed(NaN), '--');
+    assert.strictEqual(formatAverageSpeed(-1), '--');
+    assert.strictEqual(formatAverageSpeed(0), '0.0');
     assert.strictEqual(formatAverageSpeed(21.42), '21.4');
     assert.strictEqual(formatAverageSpeed(4.0), '4.0');
   });
@@ -222,23 +223,45 @@ describe('Module trip - Calculateur de Trajet', () => {
     assert.closeTo(tracker.getAverageSpeedKmh(), 20.0, 0.01);
   });
 
-  test('La vitesse moyenne reste à 0 tant que le temps de déplacement est inférieur à 5 secondes (anti-pic initial)', () => {
+  test('La vitesse moyenne reste null tant que le temps de déplacement est inférieur à 5 secondes (anti-pic initial)', () => {
     const tracker = new TripTracker();
     // Simuler un premier saut GPS de 3.5m en 1 seconde à la marche (4 km/h)
     tracker.update(48.85840, 2.29450, 4, 1000);
     tracker.update(48.85843, 2.29452, 4, 2000); // 1s de mouvement, ~3.5m
 
     assert.strictEqual(tracker.getMovingTimeSeconds(), 1);
-    // Avant le seuil de 5s, pour éviter le pic dû au jitter GPS divisé par 1s, la moyenne vaut 0
-    assert.strictEqual(tracker.getMovingAverageSpeedKmh(), 0);
-    assert.strictEqual(tracker.getTotalAverageSpeedKmh(), 0);
+    // Avant le seuil de 5s, pour éviter le pic dû au jitter GPS divisé par 1s, la moyenne vaut null
+    assert.strictEqual(tracker.getMovingAverageSpeedKmh(), null);
+    assert.strictEqual(tracker.getTotalAverageSpeedKmh(), null);
 
     // Après 6 secondes de mouvement (au-delà du seuil de 5s)
     tracker.update(48.85845, 2.29454, 4, 7000);
     assert.ok(tracker.getMovingTimeSeconds() >= 5);
     // La moyenne doit maintenant être calculée et cohérente (autour de 4 km/h, pas 12 km/h)
     const avg = tracker.getMovingAverageSpeedKmh();
-    assert.ok(avg > 0 && avg < 8, `Vitesse moyenne attendue réaliste (<8 km/h), obtenue: ${avg}`);
+    assert.ok(avg !== null && avg > 0 && avg < 8, `Vitesse moyenne attendue réaliste (<8 km/h), obtenue: ${avg}`);
+  });
+
+  test('La moyenne totale commence à être affichée dès 5 secondes de temps total même sans mouvement', () => {
+    const tracker = new TripTracker();
+    // Départ t=1000 à l'arrêt au feu rouge (vitesse 0 km/h)
+    tracker.update(48.8584, 2.2945, 0, 1000);
+    // t=4000 (3s écoulées à l'arrêt) : totalTimeMs = 3000 < 5000
+    tracker.update(48.8584, 2.2945, 0, 4000);
+    assert.strictEqual(tracker.getTotalAverageSpeedKmh(), null);
+    assert.strictEqual(tracker.getMovingAverageSpeedKmh(), null);
+
+    // t=7000 (6s écoulées au total à l'arrêt) : totalTimeMs = 6000 >= 5000
+    tracker.update(48.8584, 2.2945, 0, 7000);
+    assert.strictEqual(tracker.getMovingTimeSeconds(), 0);
+    assert.strictEqual(tracker.getTotalTimeSeconds(), 6);
+
+    // La moyenne en mouvement reste null (pas encore 5s de roulage)
+    assert.strictEqual(tracker.getMovingAverageSpeedKmh(), null);
+    // Mais la moyenne totale est désormais disponible et vaut 0.0 km/h !
+    assert.strictEqual(tracker.getTotalAverageSpeedKmh(), 0);
+    assert.strictEqual(formatAverageSpeed(tracker.getTotalAverageSpeedKmh()), '0.0');
+    assert.strictEqual(formatAverageSpeed(tracker.getMovingAverageSpeedKmh()), '--');
   });
 
   test('checkAutoResume réactive le trajet après 3 secondes au-dessus de 12 km/h', () => {

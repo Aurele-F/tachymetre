@@ -206,12 +206,12 @@ export class TripTracker {
 
   /**
    * Calcule la vitesse moyenne basée uniquement sur le temps effectif en mouvement.
-   * Intègre un seuil de stabilisation minimal de 5 secondes pour éliminer les pics de démarrage.
-   * @returns {number} Vitesse moyenne de roulage en km/h
+   * Renvoie null tant que le temps de déplacement est inférieur à 5 secondes pour éliminer les pics de démarrage.
+   * @returns {number|null} Vitesse moyenne de roulage en km/h ou null si non établie
    */
   getMovingAverageSpeedKmh() {
     if (this.movingTimeMs < 5000 || this.distanceMeters <= 0) {
-      return 0;
+      return null;
     }
     const hours = this.movingTimeMs / 3600000;
     return this.getDistanceKm() / hours;
@@ -219,23 +219,28 @@ export class TripTracker {
 
   /**
    * Calcule la vitesse moyenne basée sur le temps total (arrêts inclus, hors pause).
-   * Intègre un seuil de stabilisation minimal de 5 secondes pour éliminer les pics de démarrage.
-   * @returns {number} Vitesse moyenne totale en km/h
+   * Renvoie null tant que le temps total est inférieur à 5 secondes.
+   * Dès 5 secondes de temps total, renvoie la moyenne globale (0 si arrêté, ou calculée si en mouvement).
+   * @returns {number|null} Vitesse moyenne totale en km/h ou null si non établie
    */
   getTotalAverageSpeedKmh() {
-    if (this.totalTimeMs < 5000 || this.distanceMeters <= 0) {
-      return 0;
+    if (this.totalTimeMs < 5000) {
+      return null;
     }
     const hours = this.totalTimeMs / 3600000;
+    if (hours <= 0 || this.distanceMeters <= 0) {
+      return 0;
+    }
     return this.getDistanceKm() / hours;
   }
 
   /**
-   * Calcule la vitesse moyenne par défaut (moyenne de roulage).
+   * Calcule la vitesse moyenne par défaut (moyenne de roulage), renvoie 0 si non établie.
    * @returns {number} Vitesse moyenne en km/h
    */
   getAverageSpeedKmh() {
-    return this.getMovingAverageSpeedKmh();
+    const avg = this.getMovingAverageSpeedKmh();
+    return avg !== null ? avg : 0;
   }
 
   /**

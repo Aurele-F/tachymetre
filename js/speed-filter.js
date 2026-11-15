@@ -59,7 +59,7 @@ export function formatSpeed(speedKmh, decimals = 0) {
  * @returns {string} Vitesse moyenne formatée ou '--' si indisponible
  */
 export function formatAverageSpeed(avgKmh) {
-  if (avgKmh === null || avgKmh === undefined || isNaN(avgKmh) || avgKmh <= 0) {
+  if (avgKmh === null || avgKmh === undefined || isNaN(avgKmh) || avgKmh < 0) {
     return '--';
   }
   return avgKmh.toFixed(1);
