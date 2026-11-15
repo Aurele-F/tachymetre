@@ -29,16 +29,29 @@
       </div>
       
       <div class="header-right">
-        <button id="theme-toggle" class="icon-btn" aria-label="Changer de contraste (Éco / Plein Soleil)" title="Bascule Contraste">
-          <svg id="icon-sun" class="icon" viewBox="0 0 24 24" width="22" height="22">
+        <button id="theme-toggle" class="icon-btn" aria-label="Passer en mode Plein Soleil" title="Passer en mode Plein Soleil">
+          <!-- Icône Soleil (visible en mode Éco pour inviter à activer Plein Soleil) -->
+          <svg id="icon-sun" class="icon icon-sun" viewBox="0 0 24 24" width="22" height="22">
             <circle cx="12" cy="12" r="4" fill="currentColor"/>
             <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <!-- Icône Soleil Barré (visible en mode Plein Soleil pour revenir au mode Éco) -->
+          <svg id="icon-sun-off" class="icon icon-sun-off" viewBox="0 0 24 24" width="22" height="22">
+            <circle cx="12" cy="12" r="4" fill="currentColor"/>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="3" y1="3" x2="21" y2="21" stroke="#000000" stroke-width="4.5" stroke-linecap="round"/>
+            <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
           </svg>
         </button>
 
         <button id="fullscreen-btn" class="icon-btn" aria-label="Plein écran" title="Plein Écran">
-          <svg id="icon-fullscreen" class="icon" viewBox="0 0 24 24" width="22" height="22">
+          <!-- Icône Agrandir / Entrer en plein écran -->
+          <svg id="icon-fullscreen-enter" class="icon icon-fullscreen-enter" viewBox="0 0 24 24" width="22" height="22">
             <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <!-- Icône Réduire / Quitter le plein écran -->
+          <svg id="icon-fullscreen-exit" class="icon icon-fullscreen-exit" viewBox="0 0 24 24" width="22" height="22">
+            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
       </div>

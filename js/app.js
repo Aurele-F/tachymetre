@@ -59,9 +59,13 @@ function applyTheme(theme) {
   if (theme === 'sun') {
     document.documentElement.classList.add('theme-sun');
     document.documentElement.classList.remove('theme-eco');
+    themeToggleBtn.title = 'Passer en mode Éco / Nuit (faible luminosité)';
+    themeToggleBtn.setAttribute('aria-label', 'Passer en mode Éco / Nuit');
   } else {
     document.documentElement.classList.add('theme-eco');
     document.documentElement.classList.remove('theme-sun');
+    themeToggleBtn.title = 'Passer en mode Plein Soleil (fort contraste)';
+    themeToggleBtn.setAttribute('aria-label', 'Passer en mode Plein Soleil');
   }
 }
 
@@ -152,6 +156,21 @@ function toggleFullscreen() {
     document.exitFullscreen().catch(() => {});
   }
 }
+
+function updateFullscreenUI() {
+  const isFullscreen = Boolean(document.fullscreenElement);
+  fullscreenBtn.classList.toggle('is-fullscreen', isFullscreen);
+  if (isFullscreen) {
+    fullscreenBtn.title = 'Quitter le plein écran (réduire)';
+    fullscreenBtn.setAttribute('aria-label', 'Quitter le plein écran');
+  } else {
+    fullscreenBtn.title = 'Plein écran (agrandir)';
+    fullscreenBtn.setAttribute('aria-label', 'Plein écran');
+  }
+}
+
+document.addEventListener('fullscreenchange', updateFullscreenUI);
+document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
 
 // 7. Bascule manuelle du thème
 themeToggleBtn.addEventListener('click', (e) => {

@@ -136,6 +136,39 @@ html, body {
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* Bascule visuelle des icônes de contraste */
+.icon-sun {
+  display: block;
+}
+.icon-sun-off {
+  display: none;
+}
+
+html.theme-sun .icon-sun {
+  display: none;
+}
+html.theme-sun .icon-sun-off {
+  display: block;
+}
+
+/* Bascule visuelle des icônes de plein écran */
+.icon-fullscreen-enter {
+  display: block;
+}
+.icon-fullscreen-exit {
+  display: none;
+}
+
+#fullscreen-btn.is-fullscreen .icon-fullscreen-enter,
+:fullscreen #fullscreen-btn .icon-fullscreen-enter {
+  display: none;
+}
+
+#fullscreen-btn.is-fullscreen .icon-fullscreen-exit,
+:fullscreen #fullscreen-btn .icon-fullscreen-exit {
+  display: block;
+}
+
 /* Zone Vitesse Principale */
 .hud-main {
   flex: 1;
@@ -180,7 +213,7 @@ html, body {
   max-width: 650px;
   margin: 0 auto;
   padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.03);
+  background: #000000;
   border-radius: 14px;
   transition: opacity 0.3s ease, transform 0.3s ease;
   cursor: pointer;
