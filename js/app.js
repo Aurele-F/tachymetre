@@ -3,7 +3,7 @@
  * Orchestration des capteurs, gestion du plein écran, thèmes et gestuelle tactile.
  */
 
-import { formatSpeed } from './speed-filter.js';
+import { formatSpeed, formatAverageSpeed } from './speed-filter.js';
 import { TripTracker } from './trip.js';
 import { GeoManager, GPS_STATUS } from './geo.js';
 import { WakeLockManager } from './wakelock.js';
@@ -167,7 +167,7 @@ function updateTripUI(tracker) {
   }
 
   metricDistanceEl.innerHTML = `${formattedDist} <span class="unit">km</span>`;
-  metricAvgEl.innerHTML = `${avgKmh.toFixed(1)} <span class="unit">km/h</span>`;
+  metricAvgEl.innerHTML = `${formatAverageSpeed(avgKmh)} <span class="unit">km/h</span>`;
   metricDurationEl.textContent = tracker.formatDuration(durationSec);
 
   // Mise à jour de l'indicateur de pagination actif

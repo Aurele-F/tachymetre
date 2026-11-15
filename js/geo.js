@@ -189,10 +189,12 @@ export class GeoManager {
       const speedMps = speedProfile[step % speedProfile.length];
       step++;
 
-      // Avancement géographique exact : à speedMps mètres par seconde, le vélo avance de speedMps mètres
+      // Avancement géographique exact : décomposition vectorielle à 45° (Nord-Est)
+      // pour que l'hypoténuse (distance réelle Haversine) vaille exactement speedMps
       if (speedMps > 0) {
-        const deltaLat = speedMps / 111139;
-        const deltaLon = speedMps / (111139 * Math.cos((curLat * Math.PI) / 180));
+        const distMps = speedMps / Math.SQRT2;
+        const deltaLat = distMps / 111139;
+        const deltaLon = distMps / (111139 * Math.cos((curLat * Math.PI) / 180));
         curLat += deltaLat;
         curLon += deltaLon;
       }

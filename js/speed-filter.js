@@ -51,3 +51,16 @@ export function formatSpeed(speedKmh, decimals = 0) {
   }
   return speedKmh.toFixed(decimals);
 }
+
+/**
+ * Formate la vitesse moyenne pour l'affichage du bandeau des métriques.
+ * Renvoie '--' si la moyenne n'est pas encore établie (<= 0), sinon la valeur à 1 décimale.
+ * @param {number|null|undefined} avgKmh Vitesse moyenne en km/h
+ * @returns {string} Vitesse moyenne formatée ou '--' si indisponible
+ */
+export function formatAverageSpeed(avgKmh) {
+  if (avgKmh === null || avgKmh === undefined || isNaN(avgKmh) || avgKmh <= 0) {
+    return '--';
+  }
+  return avgKmh.toFixed(1);
+}

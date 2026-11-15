@@ -46,7 +46,8 @@ import {
   MIN_SPEED_THRESHOLD_MPS,
   toKmh,
   filterSpeed,
-  formatSpeed
+  formatSpeed,
+  formatAverageSpeed
 } from '../js/speed-filter.js';
 
 // --- Tests Task 2 : trip.js ---
@@ -104,6 +105,15 @@ describe('Module speed-filter', () => {
     assert.strictEqual(formatSpeed(0), '0');
     assert.strictEqual(formatSpeed(24.2), '24');
     assert.strictEqual(formatSpeed(24.8), '25');
+  });
+
+  test('formatAverageSpeed renvoie "--" si la moyenne est nulle ou indisponible, sinon 1 décimale', () => {
+    assert.strictEqual(formatAverageSpeed(0), '--');
+    assert.strictEqual(formatAverageSpeed(null), '--');
+    assert.strictEqual(formatAverageSpeed(undefined), '--');
+    assert.strictEqual(formatAverageSpeed(-5), '--');
+    assert.strictEqual(formatAverageSpeed(21.42), '21.4');
+    assert.strictEqual(formatAverageSpeed(4.0), '4.0');
   });
 });
 
@@ -210,6 +220,25 @@ describe('Module trip - Calculateur de Trajet', () => {
     assert.closeTo(tracker.getMovingAverageSpeedKmh(), 20.0, 0.01);
     assert.closeTo(tracker.getTotalAverageSpeedKmh(), 10.0, 0.01);
     assert.closeTo(tracker.getAverageSpeedKmh(), 20.0, 0.01);
+  });
+
+  test('La vitesse moyenne reste à 0 tant que le temps de déplacement est inférieur à 5 secondes (anti-pic initial)', () => {
+    const tracker = new TripTracker();
+    // Simuler un premier saut GPS de 3.5m en 1 seconde à la marche (4 km/h)
+    tracker.update(48.85840, 2.29450, 4, 1000);
+    tracker.update(48.85843, 2.29452, 4, 2000); // 1s de mouvement, ~3.5m
+
+    assert.strictEqual(tracker.getMovingTimeSeconds(), 1);
+    // Avant le seuil de 5s, pour éviter le pic dû au jitter GPS divisé par 1s, la moyenne vaut 0
+    assert.strictEqual(tracker.getMovingAverageSpeedKmh(), 0);
+    assert.strictEqual(tracker.getTotalAverageSpeedKmh(), 0);
+
+    // Après 6 secondes de mouvement (au-delà du seuil de 5s)
+    tracker.update(48.85845, 2.29454, 4, 7000);
+    assert.ok(tracker.getMovingTimeSeconds() >= 5);
+    // La moyenne doit maintenant être calculée et cohérente (autour de 4 km/h, pas 12 km/h)
+    const avg = tracker.getMovingAverageSpeedKmh();
+    assert.ok(avg > 0 && avg < 8, `Vitesse moyenne attendue réaliste (<8 km/h), obtenue: ${avg}`);
   });
 
   test('checkAutoResume réactive le trajet après 3 secondes au-dessus de 12 km/h', () => {
@@ -328,6 +357,25 @@ describe('Module geo - Gestionnaire GPS & Watchdog', () => {
     geo.handlePosition(inaccuratePos);
     assert.strictEqual(geo.getStatus(), GPS_STATUS.SEARCHING);
     assert.strictEqual(speedUpdateCount, 0);
+  });
+
+  test('La simulation d\'itinéraire génère un déplacement métrique exactement égal à speedMps', () => {
+    // Calcul pour speedMps = 8.3 m/s (~30 km/h)
+    const speedMps = 8.3;
+    const curLat = 48.8584;
+    const curLon = 2.2945;
+    const distMps = speedMps / Math.SQRT2;
+    const deltaLat = distMps / 111139;
+    const deltaLon = distMps / (111139 * Math.cos((curLat * Math.PI) / 180));
+
+    const measuredDist = haversineDistanceMeters(
+      curLat,
+      curLon,
+      curLat + deltaLat,
+      curLon + deltaLon
+    );
+
+    assert.closeTo(measuredDist, speedMps, 0.05, 'Le déplacement doit correspondre exactement à la vitesse (8.3m)');
   });
 
   test('triggerWatchdogTimeout passe le statut à LOST et émet vitesse null', () => {

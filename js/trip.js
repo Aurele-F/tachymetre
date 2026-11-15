@@ -147,14 +147,25 @@ export class TripTracker {
         const deltaMs = timestampMs - this.lastMoveTimestamp;
         // Seuil de sécurité : si le délai est inférieur à 15 secondes, on cumule
         if (deltaMs > 0 && deltaMs <= 15000) {
-          const deltaDistance = haversineDistanceMeters(
+          const deltaSec = deltaMs / 1000;
+          let deltaDistance = haversineDistanceMeters(
             this.lastPosition.lat,
             this.lastPosition.lon,
             lat,
             lon
           );
+
+          // Filtrage de cohérence physique : la distance Haversine ne doit pas dépasser
+          // démesurément la distance permise par la vitesse instantanée mesurée par le capteur GPS
+          // (élimine l'amplification du jitter d'antenne de 3-4m sur 1s à basse vitesse)
+          const speedMps = speedKmh / 3.6;
+          const maxPlausibleDistance = Math.max(speedMps * deltaSec * 1.5 + 1.5, 2.0 * deltaSec);
+          if (deltaDistance > maxPlausibleDistance && deltaDistance / deltaSec < 50) {
+            deltaDistance = maxPlausibleDistance;
+          }
+
           // Évite d'ajouter des sauts aberrants (> 50 m/s ~ 180 km/h)
-          if (deltaDistance / (deltaMs / 1000) < 50) {
+          if (deltaDistance / deltaSec < 50) {
             this.distanceMeters += deltaDistance;
             this.movingTimeMs += deltaMs;
           }
@@ -195,25 +206,27 @@ export class TripTracker {
 
   /**
    * Calcule la vitesse moyenne basée uniquement sur le temps effectif en mouvement.
+   * Intègre un seuil de stabilisation minimal de 5 secondes pour éliminer les pics de démarrage.
    * @returns {number} Vitesse moyenne de roulage en km/h
    */
   getMovingAverageSpeedKmh() {
-    const hours = this.movingTimeMs / 3600000;
-    if (hours <= 0 || this.distanceMeters <= 0) {
+    if (this.movingTimeMs < 5000 || this.distanceMeters <= 0) {
       return 0;
     }
+    const hours = this.movingTimeMs / 3600000;
     return this.getDistanceKm() / hours;
   }
 
   /**
    * Calcule la vitesse moyenne basée sur le temps total (arrêts inclus, hors pause).
+   * Intègre un seuil de stabilisation minimal de 5 secondes pour éliminer les pics de démarrage.
    * @returns {number} Vitesse moyenne totale en km/h
    */
   getTotalAverageSpeedKmh() {
-    const hours = this.totalTimeMs / 3600000;
-    if (hours <= 0 || this.distanceMeters <= 0) {
+    if (this.totalTimeMs < 5000 || this.distanceMeters <= 0) {
       return 0;
     }
+    const hours = this.totalTimeMs / 3600000;
     return this.getDistanceKm() / hours;
   }
 
