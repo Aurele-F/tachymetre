@@ -40,7 +40,13 @@
     };
 
     try {
-      const module = await import('./test-runner.js');
+      // Purge des caches éventuels pour garantir que les tests s'exécutent sur les fichiers frais du disque
+      if ('caches' in window) {
+        const cacheKeys = await caches.keys();
+        await Promise.all(cacheKeys.map((k) => caches.delete(k)));
+      }
+
+      const module = await import('./test-runner.js?t=' + Date.now());
       const summary = module.getSummary();
       output += `\n[BILAN] Total: ${summary.total} | Réussis: ${summary.passed} | Échecs: ${summary.failed}\n`;
       logEl.innerText = output;

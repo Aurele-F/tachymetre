@@ -229,17 +229,33 @@ html.theme-sun .icon-sun-off {
   width: 100%;
   max-width: 650px;
   margin: 0 auto;
-  padding: 10px 16px;
+  padding: 10px 16px 8px 16px;
   background: #000000;
   border-radius: 14px;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease, outline 0.3s ease;
   cursor: pointer;
+  touch-action: pan-y;
 }
 
 .hud-metrics.metrics-hidden {
-  opacity: 0;
+  opacity: 0 !important;
   pointer-events: none;
   transform: translateY(12px);
+  animation: none !important;
+}
+
+/* État en pause : respiration douce du bandeau (Option 2) */
+.hud-metrics.is-paused {
+  animation: pause-pulse 2.5s infinite ease-in-out;
+}
+
+@keyframes pause-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.38;
+  }
 }
 
 .metric-card {
@@ -247,6 +263,7 @@ html.theme-sun .icon-sun-off {
   flex-direction: column;
   align-items: center;
   text-align: center;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .metric-label {
@@ -269,27 +286,57 @@ html.theme-sun .icon-sun-off {
   opacity: 0.8;
 }
 
+/* Indicateurs de pagination du carrousel */
+.carousel-dots {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 2px;
+}
+
+.carousel-dots .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--metric-lbl-color);
+  opacity: 0.35;
+  transition: opacity 0.25s ease, transform 0.25s ease, background-color 0.25s ease;
+}
+
+.carousel-dots .dot.active {
+  opacity: 0.95;
+  transform: scale(1.3);
+  background-color: var(--metric-val-color);
+}
+
 /* Toast de confirmation */
 .toast {
   position: absolute;
-  top: 50%;
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 115px);
   left: 50%;
-  transform: translate(-50%, -50%) scale(0.9);
-  background: rgba(30, 30, 30, 0.9);
-  color: #ffffff;
-  padding: 12px 24px;
+  transform: translateX(-50%) translateY(8px) scale(0.95);
+  background: #000000;
+  border: 1px solid currentColor;
+  color: var(--speed-color);
+  padding: 8px 20px;
   border-radius: 20px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
+  letter-spacing: 0.03em;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s ease, transform 0.25s ease;
   z-index: 100;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
 }
 
 .toast.show {
   opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
+  transform: translateX(-50%) translateY(0) scale(1);
 }
 
 /* Adaptation Mode Paysage */
@@ -322,5 +369,11 @@ html.theme-sun .icon-sun-off {
 
   .metric-val {
     font-size: 1.15rem;
+  }
+
+  .toast {
+    bottom: calc(max(6px, env(safe-area-inset-bottom)) + 85px);
+    padding: 6px 16px;
+    font-size: 0.8rem;
   }
 }

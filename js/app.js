@@ -9,8 +9,9 @@ import { GeoManager, GPS_STATUS } from './geo.js';
 import { WakeLockManager } from './wakelock.js';
 import { LightManager } from './light.js';
 
-// Clé de persistance locale
+// Clés de persistance locale
 const STORAGE_KEY_TRIP = 'tachymetre_trip_data';
+const STORAGE_KEY_METRICS_VIEW = 'tachymetre_metrics_view';
 
 // Récupération des éléments DOM
 const hudContainer = document.getElementById('hud-container');
@@ -25,7 +26,19 @@ const tripMetricsEl = document.getElementById('trip-metrics');
 const metricDistanceEl = document.getElementById('metric-distance');
 const metricAvgEl = document.getElementById('metric-avg');
 const metricDurationEl = document.getElementById('metric-duration');
+const metricLabelAvgEl = document.getElementById('metric-label-avg');
+const metricLabelDurationEl = document.getElementById('metric-label-duration');
+const metricsDotsEl = document.getElementById('metrics-dots');
 const resetToastEl = document.getElementById('reset-toast');
+
+// Mode de vue actif du bandeau : 'moving' (temps de roulage) ou 'total' (temps global)
+let metricsView = 'moving';
+try {
+  const savedView = localStorage.getItem(STORAGE_KEY_METRICS_VIEW);
+  if (savedView === 'total' || savedView === 'moving') {
+    metricsView = savedView;
+  }
+} catch (e) {}
 
 // 1. Initialisation du suivi de trajet
 const tripTracker = new TripTracker();
@@ -89,6 +102,14 @@ const geoManager = new GeoManager({
   tripTracker,
   onSpeed: (speedKmh) => {
     speedValueEl.textContent = formatSpeed(speedKmh);
+    // Détection d'auto-reprise (> 12 km/h pendant 3s)
+    if (tripTracker.isPaused()) {
+      const autoResumed = tripTracker.checkAutoResume(speedKmh, Date.now(), 12, 3);
+      if (autoResumed) {
+        updateTripUI(tripTracker);
+        showToast('Trajet repris');
+      }
+    }
   },
   onStatus: (status) => {
     updateGpsStatusUI(status);
@@ -123,14 +144,48 @@ function updateGpsStatusUI(status) {
 }
 
 function updateTripUI(tracker) {
+  const isPaused = tracker.isPaused();
+  tripMetricsEl.classList.toggle('is-paused', isPaused);
+  if (isPaused) {
+    tripMetricsEl.classList.remove('metrics-hidden');
+  }
+
   const formattedDist = tracker.getFormattedDistance();
-  const avgKmh = tracker.getAverageSpeedKmh();
-  const durationSec = tracker.getMovingTimeSeconds();
+  let avgKmh = 0;
+  let durationSec = 0;
+
+  if (metricsView === 'total') {
+    avgKmh = tracker.getTotalAverageSpeedKmh();
+    durationSec = tracker.getTotalTimeSeconds();
+    if (metricLabelAvgEl) metricLabelAvgEl.textContent = 'MOY. TOTALE';
+    if (metricLabelDurationEl) metricLabelDurationEl.textContent = 'TEMPS TOTAL';
+  } else {
+    avgKmh = tracker.getMovingAverageSpeedKmh();
+    durationSec = tracker.getMovingTimeSeconds();
+    if (metricLabelAvgEl) metricLabelAvgEl.textContent = 'MOYENNE';
+    if (metricLabelDurationEl) metricLabelDurationEl.textContent = 'TEMPS';
+  }
 
   metricDistanceEl.innerHTML = `${formattedDist} <span class="unit">km</span>`;
   metricAvgEl.innerHTML = `${avgKmh.toFixed(1)} <span class="unit">km/h</span>`;
   metricDurationEl.textContent = tracker.formatDuration(durationSec);
+
+  // Mise à jour de l'indicateur de pagination actif
+  if (metricsDotsEl) {
+    const dots = metricsDotsEl.querySelectorAll('.dot');
+    dots.forEach((dot) => {
+      dot.classList.toggle('active', dot.getAttribute('data-view') === metricsView);
+    });
+  }
 }
+
+// Mise à jour continue du temps total à l'arrêt (chaque seconde quand actif)
+setInterval(() => {
+  if (!tripTracker.isPaused() && metricsView === 'total') {
+    tripTracker.tick();
+    updateTripUI(tripTracker);
+  }
+}, 1000);
 
 // 5. Détection du mode Démonstration / Simulation (?demo=1)
 const urlParams = new URLSearchParams(window.location.search);
@@ -230,29 +285,46 @@ hudContainer.addEventListener('click', (e) => {
     // Enregistrement du premier tap, en attente d'un éventuel second tap
     lastTapTimestamp = now;
     singleTapTimeout = setTimeout(() => {
-      // Simple tap confirmé : affiche ou masque le volet des métriques
-      tripMetricsEl.classList.toggle('metrics-hidden');
+      // Simple tap confirmé : affiche ou masque le volet des métriques (verrouillé visible en pause)
+      if (tripTracker.isPaused()) {
+        tripMetricsEl.classList.remove('metrics-hidden');
+      } else {
+        tripMetricsEl.classList.toggle('metrics-hidden');
+      }
       singleTapTimeout = null;
     }, 320);
   }
 });
 
-// 10. Appui long (2 secondes) sur le bandeau des métriques pour réinitialiser le trajet
+// 10. Gestuelle du bandeau des métriques : Tap (Pause/Reprise), Swipe (Carrousel), Appui long (Réinitialisation)
 let longPressTimer = null;
 let toastTimeout = null;
+let pointerStartX = 0;
+let pointerStartY = 0;
+let pointerStartTime = 0;
+let isPointerDown = false;
+let isSwiping = false;
+let longPressTriggered = false;
 
-function startLongPress(e) {
-  if (longPressTimer) clearTimeout(longPressTimer);
-  longPressTimer = setTimeout(() => {
-    resetTripWithToast();
-  }, 2000);
+function showToast(message) {
+  resetToastEl.textContent = message;
+  resetToastEl.classList.add('show');
+  if (toastTimeout) clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => {
+    resetToastEl.classList.remove('show');
+  }, 2200);
 }
 
-function cancelLongPress() {
-  if (longPressTimer) {
-    clearTimeout(longPressTimer);
-    longPressTimer = null;
+function switchMetricsView(targetView) {
+  if (targetView) {
+    metricsView = targetView;
+  } else {
+    metricsView = metricsView === 'moving' ? 'total' : 'moving';
   }
+  try {
+    localStorage.setItem(STORAGE_KEY_METRICS_VIEW, metricsView);
+  } catch (e) {}
+  updateTripUI(tripTracker);
 }
 
 function resetTripWithToast() {
@@ -261,18 +333,111 @@ function resetTripWithToast() {
   try {
     localStorage.removeItem(STORAGE_KEY_TRIP);
   } catch (e) {}
-
-  resetToastEl.classList.add('show');
-  if (toastTimeout) clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(() => {
-    resetToastEl.classList.remove('show');
-  }, 2200);
+  showToast('Trajet réinitialisé');
 }
 
-tripMetricsEl.addEventListener('touchstart', startLongPress, { passive: true });
-tripMetricsEl.addEventListener('touchend', cancelLongPress);
-tripMetricsEl.addEventListener('touchcancel', cancelLongPress);
+function onMetricsPointerDown(e) {
+  isPointerDown = true;
+  pointerStartX = e.clientX;
+  pointerStartY = e.clientY;
+  pointerStartTime = Date.now();
+  isSwiping = false;
+  longPressTriggered = false;
 
-tripMetricsEl.addEventListener('mousedown', startLongPress);
-tripMetricsEl.addEventListener('mouseup', cancelLongPress);
-tripMetricsEl.addEventListener('mouseleave', cancelLongPress);
+  if (longPressTimer) clearTimeout(longPressTimer);
+  longPressTimer = setTimeout(() => {
+    longPressTriggered = true;
+    resetTripWithToast();
+  }, 2000);
+
+  try {
+    tripMetricsEl.setPointerCapture(e.pointerId);
+  } catch (err) {}
+}
+
+function onMetricsPointerMove(e) {
+  // Ignorer les survols de souris sans bouton enfoncé
+  if (!isPointerDown) return;
+
+  const deltaX = e.clientX - pointerStartX;
+  const deltaY = e.clientY - pointerStartY;
+
+  // Déplacement significatif : annule le déclenchement de l'appui long
+  if (Math.abs(deltaX) > 15 || Math.abs(deltaY) > 15) {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  }
+
+  // Swipe horizontal détecté (amplitude >= 40px)
+  if (Math.abs(deltaX) >= 40 && !isSwiping && !longPressTriggered) {
+    isSwiping = true;
+    switchMetricsView();
+  }
+}
+
+function onMetricsPointerUp(e) {
+  if (!isPointerDown) return;
+  isPointerDown = false;
+
+  try {
+    tripMetricsEl.releasePointerCapture(e.pointerId);
+  } catch (err) {}
+
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+
+  if (longPressTriggered) {
+    return;
+  }
+
+  const deltaX = Math.abs(e.clientX - pointerStartX);
+  const deltaY = Math.abs(e.clientY - pointerStartY);
+  const duration = Date.now() - pointerStartTime;
+
+  // Simple tap confirmé : durée courte (< 350ms) et déplacement quasi nul (< 15px)
+  if (!isSwiping && duration < 350 && deltaX < 15 && deltaY < 15) {
+    const isPaused = tripTracker.togglePause();
+    if (isPaused) {
+      tripMetricsEl.classList.remove('metrics-hidden');
+    }
+    updateTripUI(tripTracker);
+    showToast(isPaused ? 'Trajet en pause' : 'Trajet repris');
+    try {
+      localStorage.setItem(STORAGE_KEY_TRIP, JSON.stringify(tripTracker.serialize()));
+    } catch (err) {}
+  }
+}
+
+function onMetricsPointerCancel(e) {
+  isPointerDown = false;
+  try {
+    tripMetricsEl.releasePointerCapture(e.pointerId);
+  } catch (err) {}
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+}
+
+tripMetricsEl.addEventListener('pointerdown', onMetricsPointerDown);
+tripMetricsEl.addEventListener('pointermove', onMetricsPointerMove);
+tripMetricsEl.addEventListener('pointerup', onMetricsPointerUp);
+tripMetricsEl.addEventListener('pointercancel', onMetricsPointerCancel);
+
+// Clic direct sur les points de pagination du carrousel
+if (metricsDotsEl) {
+  metricsDotsEl.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const dot = e.target.closest('.dot');
+    if (dot) {
+      const targetView = dot.getAttribute('data-view');
+      if (targetView && targetView !== metricsView) {
+        switchMetricsView(targetView);
+      }
+    }
+  });
+}

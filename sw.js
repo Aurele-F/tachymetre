@@ -3,7 +3,7 @@
  * Stratégie Cache-First pour un fonctionnement 100% autonome hors-ligne.
  */
 
-const CACHE_NAME = 'tachymetre-pwa-v7';
+const CACHE_NAME = 'tachymetre-pwa-v11';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -48,6 +48,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Ignorer les requêtes non-GET ou de schémas non supportés
   if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
+    return;
+  }
+
+  // Ne jamais intercepter les requêtes liées à la suite de tests pour garantir du code toujours frais
+  if (event.request.url.includes('/tests/') || (event.request.referrer && event.request.referrer.includes('/tests/'))) {
     return;
   }
 

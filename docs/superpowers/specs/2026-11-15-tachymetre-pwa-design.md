@@ -56,9 +56,13 @@ L'interface s'adapte aussi bien en mode portrait qu'en mode paysage :
 - **Typographie :** Police système sans-serif moderne (`system-ui, -apple-system, Roboto, sans-serif`) configurée avec `font-variant-numeric: tabular-nums` pour éviter toute variation de largeur lors des changements de chiffres.
 
 ### 2.3 Gestuelle et Interactions Tactiles
-- **Simple Tap n'importe où sur l'écran :** Affiche ou masque avec transition douce le bandeau inférieur des métriques secondaires (distance, moyenne, chrono).
-- **Double Tap :** Bascule manuelle immédiate entre le mode Éco (gris) et le mode Plein Soleil (blanc contrasté).
-- **Appui long (2 secondes) sur le bandeau des métriques :** Réinitialise le trajet en cours (distance, chrono, moyenne remis à zéro) avec un feedback visuel temporaire ("Trajet réinitialisé").
+- **Simple Tap dans la zone centrale / écran :** Affiche ou masque avec transition douce le bandeau inférieur des métriques secondaires.
+- **Double Tap dans la zone centrale :** Bascule manuelle immédiate entre le mode Éco (gris) et le mode Plein Soleil (blanc contrasté).
+- **Gestuelle sur le bandeau inférieur des métriques :**
+  - **Simple Tap :** Met en pause ou reprend l'enregistrement du trajet (distance, temps de roulage et temps total figés). Le bandeau adopte une respiration douce en pause (`is-paused`) et un toast informe de l'état (*"Trajet en pause"* / *"Trajet repris"*).
+  - **Auto-reprise au roulage :** Si la pause est active et que la vitesse dépasse **12 km/h pendant 3 secondes consécutives**, la mesure reprend automatiquement.
+  - **Swipe horizontal (glissement gauche/droite) :** Bascule le carrousel entre la **Vue 1 (Roulage)** (`DISTANCE`, `MOYENNE`, `TEMPS`) et la **Vue 2 (Global)** (`DISTANCE`, `MOY. TOTALE`, `TEMPS TOTAL` feux et arrêts inclus). Deux points de pagination indiquent la vue active et le choix est conservé dans `localStorage`.
+  - **Appui long (2 secondes) :** Réinitialise le trajet en cours (distance, chronos et moyennes remis à zéro) avec le toast *"Trajet réinitialisé"*.
 - **Bouton Plein Écran (`[⛶]` / `[🗗]`) :**
   - Entrée en mode immersif via `document.documentElement.requestFullscreen()`.
   - Sortie via `document.exitFullscreen()` ou par le geste natif Android (glisser du bord).

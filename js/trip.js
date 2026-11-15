@@ -40,13 +40,93 @@ export class TripTracker {
   reset() {
     this.distanceMeters = 0;
     this.movingTimeMs = 0;
+    this.totalTimeMs = 0;
+    this.paused = false;
     this.lastMoveTimestamp = null;
     this.lastPosition = null;
+    this.lastUpdateTimestamp = null;
+    this.autoResumeStartMs = null;
+  }
+
+  /**
+   * Indique si l'enregistrement du trajet est actuellement en pause.
+   * @returns {boolean}
+   */
+  isPaused() {
+    return this.paused;
+  }
+
+  /**
+   * Active ou désactive la pause de la mesure.
+   * @param {boolean} paused
+   */
+  setPaused(paused) {
+    this.paused = Boolean(paused);
+    if (this.paused) {
+      this.lastMoveTimestamp = null;
+      this.lastPosition = null;
+      this.lastUpdateTimestamp = null;
+      this.autoResumeStartMs = null;
+    }
+  }
+
+  /**
+   * Bascule l'état de pause.
+   * @returns {boolean} Nouvel état de pause
+   */
+  togglePause() {
+    this.setPaused(!this.paused);
+    return this.paused;
+  }
+
+  /**
+   * Vérifie si les conditions d'auto-reprise sont remplies (vitesse > seuil pendant N secondes).
+   * @param {number} speedKmh Vitesse instantanée filtrée
+   * @param {number} [timestampMs=Date.now()] Horodatage
+   * @param {number} [thresholdKmh=12] Seuil de vitesse (défaut 12 km/h)
+   * @param {number} [durationSec=3] Durée continue requise (défaut 3s)
+   * @returns {boolean} true si l'auto-reprise a été déclenchée
+   */
+  checkAutoResume(speedKmh, timestampMs = Date.now(), thresholdKmh = 12, durationSec = 3) {
+    if (!this.paused) {
+      this.autoResumeStartMs = null;
+      return false;
+    }
+
+    if (speedKmh > thresholdKmh) {
+      if (this.autoResumeStartMs === null) {
+        this.autoResumeStartMs = timestampMs;
+      } else if (timestampMs - this.autoResumeStartMs >= durationSec * 1000) {
+        this.setPaused(false);
+        this.autoResumeStartMs = null;
+        return true;
+      }
+    } else {
+      this.autoResumeStartMs = null;
+    }
+    return false;
+  }
+
+  /**
+   * Fait avancer le chronomètre de temps total sans nécessiter de nouvelle position GPS (utile à l'arrêt).
+   * @param {number} [timestampMs=Date.now()] Horodatage
+   */
+  tick(timestampMs = Date.now()) {
+    if (this.paused) {
+      return;
+    }
+    if (this.lastUpdateTimestamp !== null) {
+      const deltaTotalMs = timestampMs - this.lastUpdateTimestamp;
+      if (deltaTotalMs > 0 && deltaTotalMs <= 15000) {
+        this.totalTimeMs += deltaTotalMs;
+      }
+    }
+    this.lastUpdateTimestamp = timestampMs;
   }
 
   /**
    * Met à jour le trajet avec la nouvelle position et la vitesse instantanée.
-   * Ne comptabilise la distance et le temps que si la vitesse est strictement positive.
+   * Ne comptabilise rien si la mesure est en pause.
    *
    * @param {number} lat Latitude
    * @param {number} lon Longitude
@@ -54,6 +134,14 @@ export class TripTracker {
    * @param {number} [timestampMs=Date.now()] Horodatage en millisecondes
    */
   update(lat, lon, speedKmh, timestampMs = Date.now()) {
+    if (this.paused) {
+      return;
+    }
+
+    // 1. Calcul du temps total écoulé (feux et arrêts compris, hors pause)
+    this.tick(timestampMs);
+
+    // 2. Calcul du temps effectif en mouvement et de la distance parcourue
     if (speedKmh > 0) {
       if (this.lastMoveTimestamp !== null && this.lastPosition !== null) {
         const deltaMs = timestampMs - this.lastMoveTimestamp;
@@ -75,7 +163,7 @@ export class TripTracker {
       this.lastMoveTimestamp = timestampMs;
       this.lastPosition = { lat, lon };
     } else {
-      // À l'arrêt : on suspend le chronomètre et on réinitialise le point de repère
+      // À l'arrêt : on suspend le chronomètre de roulage et on réinitialise le point de repère
       this.lastMoveTimestamp = null;
       this.lastPosition = null;
     }
@@ -98,15 +186,43 @@ export class TripTracker {
   }
 
   /**
-   * Calcule la vitesse moyenne basée sur le temps effectif en mouvement.
-   * @returns {number} Vitesse moyenne en km/h
+   * Renvoie la durée totale du trajet en secondes (feux et arrêts inclus, hors pause).
+   * @returns {number}
    */
-  getAverageSpeedKmh() {
+  getTotalTimeSeconds() {
+    return Math.floor(this.totalTimeMs / 1000);
+  }
+
+  /**
+   * Calcule la vitesse moyenne basée uniquement sur le temps effectif en mouvement.
+   * @returns {number} Vitesse moyenne de roulage en km/h
+   */
+  getMovingAverageSpeedKmh() {
     const hours = this.movingTimeMs / 3600000;
     if (hours <= 0 || this.distanceMeters <= 0) {
       return 0;
     }
     return this.getDistanceKm() / hours;
+  }
+
+  /**
+   * Calcule la vitesse moyenne basée sur le temps total (arrêts inclus, hors pause).
+   * @returns {number} Vitesse moyenne totale en km/h
+   */
+  getTotalAverageSpeedKmh() {
+    const hours = this.totalTimeMs / 3600000;
+    if (hours <= 0 || this.distanceMeters <= 0) {
+      return 0;
+    }
+    return this.getDistanceKm() / hours;
+  }
+
+  /**
+   * Calcule la vitesse moyenne par défaut (moyenne de roulage).
+   * @returns {number} Vitesse moyenne en km/h
+   */
+  getAverageSpeedKmh() {
+    return this.getMovingAverageSpeedKmh();
   }
 
   /**
@@ -145,7 +261,9 @@ export class TripTracker {
   serialize() {
     return {
       distanceMeters: this.distanceMeters,
-      movingTimeMs: this.movingTimeMs
+      movingTimeMs: this.movingTimeMs,
+      totalTimeMs: this.totalTimeMs,
+      isPaused: this.paused
     };
   }
 
@@ -157,8 +275,12 @@ export class TripTracker {
     if (!data) return;
     this.distanceMeters = Number(data.distanceMeters) || 0;
     this.movingTimeMs = Number(data.movingTimeMs) || 0;
+    this.totalTimeMs = Number(data.totalTimeMs) || 0;
+    this.paused = Boolean(data.isPaused);
     this.lastMoveTimestamp = null;
     this.lastPosition = null;
+    this.lastUpdateTimestamp = null;
+    this.autoResumeStartMs = null;
   }
 }
 

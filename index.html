@@ -65,25 +65,31 @@
       </div>
     </main>
 
-    <!-- Bandeau inférieur : Métriques de trajet (masquables au tap) -->
-    <footer class="hud-metrics" id="trip-metrics" title="Appui long pour réinitialiser le trajet">
+    <!-- Bandeau inférieur : Métriques de trajet (carrousel roulage/global, tap = pause/reprise, appui long = réinitialiser) -->
+    <footer class="hud-metrics" id="trip-metrics" title="Tap : pause / reprise | Glisser : changer de vue | Appui long : réinitialiser">
       <div class="metric-card">
-        <span class="metric-label">DISTANCE</span>
+        <span class="metric-label" id="metric-label-distance">DISTANCE</span>
         <span class="metric-val" id="metric-distance">0.0 <span class="unit">km</span></span>
       </div>
 
       <div class="metric-card">
-        <span class="metric-label">MOYENNE</span>
+        <span class="metric-label" id="metric-label-avg">MOYENNE</span>
         <span class="metric-val" id="metric-avg">0.0 <span class="unit">km/h</span></span>
       </div>
 
       <div class="metric-card">
-        <span class="metric-label">TEMPS</span>
+        <span class="metric-label" id="metric-label-duration">TEMPS</span>
         <span class="metric-val" id="metric-duration">00:00</span>
+      </div>
+
+      <!-- Indicateurs de pagination du carrousel (Vue 1: Roulage | Vue 2: Global) -->
+      <div class="carousel-dots" id="metrics-dots" aria-hidden="true">
+        <span class="dot active" data-view="moving" title="Temps en mouvement"></span>
+        <span class="dot" data-view="total" title="Temps total arrêts inclus"></span>
       </div>
     </footer>
 
-    <!-- Toast de confirmation réinitialisation -->
+    <!-- Toast de confirmation dynamique (réinitialisation, pause, reprise) -->
     <div id="reset-toast" class="toast">Trajet réinitialisé</div>
 
   </div>

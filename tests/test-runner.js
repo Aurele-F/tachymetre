@@ -150,22 +150,105 @@ describe('Module trip - Calculateur de Trajet', () => {
 
   test('TripTracker réinitialise les compteurs', () => {
     const tracker = new TripTracker();
-    tracker.restore({ distanceMeters: 5000, movingTimeMs: 900000 });
+    tracker.restore({ distanceMeters: 5000, movingTimeMs: 900000, totalTimeMs: 1200000, isPaused: true });
     tracker.reset();
     assert.strictEqual(tracker.getDistanceKm(), 0);
     assert.strictEqual(tracker.getMovingTimeSeconds(), 0);
+    assert.strictEqual(tracker.getTotalTimeSeconds(), 0);
+    assert.strictEqual(tracker.isPaused(), false);
     assert.strictEqual(tracker.getAverageSpeedKmh(), 0);
   });
 
-  test('TripTracker sérialise et restaure l\'état', () => {
+  test('TripTracker démarre par défaut avec isPaused = false et totalTimeMs = 0', () => {
+    const tracker = new TripTracker();
+    assert.strictEqual(tracker.isPaused(), false);
+    assert.strictEqual(tracker.getTotalTimeSeconds(), 0);
+  });
+
+  test('TripTracker cumule le temps total lors des arrêts sans incrémenter le temps de roulage', () => {
+    const tracker = new TripTracker();
+    // Départ t=1000 en mouvement (20 km/h)
+    tracker.update(48.8584, 2.2945, 20, 1000);
+    // t=6000 (5s de roulage)
+    tracker.update(48.8589, 2.2945, 20, 6000);
+    // Arrêt au feu rouge : t=11000 (vitesse 0 km/h pendant 5s)
+    tracker.update(48.8589, 2.2945, 0, 11000);
+    // Toujours au feu : t=16000 (encore 5s à 0 km/h)
+    tracker.update(48.8589, 2.2945, 0, 16000);
+
+    assert.strictEqual(tracker.getMovingTimeSeconds(), 5);
+    assert.strictEqual(tracker.getTotalTimeSeconds(), 15);
+  });
+
+  test('TripTracker en pause fige la distance, le temps de roulage et le temps total', () => {
+    const tracker = new TripTracker();
+    tracker.update(48.8584, 2.2945, 20, 1000);
+    tracker.update(48.8589, 2.2945, 20, 6000); // 5s de roulage
+    const distBefore = tracker.getDistanceKm();
+
+    // Mise en pause (ex: déjeuner)
+    tracker.setPaused(true);
+    assert.strictEqual(tracker.isPaused(), true);
+
+    // Activité pendant la pause (t=120000, 2 min plus tard)
+    tracker.update(48.8600, 2.2950, 15, 120000);
+    tracker.update(48.8610, 2.2960, 0, 130000);
+
+    assert.strictEqual(tracker.getDistanceKm(), distBefore);
+    assert.strictEqual(tracker.getMovingTimeSeconds(), 5);
+    assert.strictEqual(tracker.getTotalTimeSeconds(), 5);
+  });
+
+  test('TripTracker calcule distinctement la vitesse moyenne de roulage et la moyenne totale', () => {
+    const tracker = new TripTracker();
+    tracker.restore({
+      distanceMeters: 10000,
+      movingTimeMs: 1800000, // 0.5 h -> 20 km/h
+      totalTimeMs: 3600000   // 1.0 h -> 10 km/h
+    });
+
+    assert.closeTo(tracker.getMovingAverageSpeedKmh(), 20.0, 0.01);
+    assert.closeTo(tracker.getTotalAverageSpeedKmh(), 10.0, 0.01);
+    assert.closeTo(tracker.getAverageSpeedKmh(), 20.0, 0.01);
+  });
+
+  test('checkAutoResume réactive le trajet après 3 secondes au-dessus de 12 km/h', () => {
+    const tracker = new TripTracker();
+    tracker.setPaused(true);
+
+    // t=1000 : 5 km/h (marche) -> pas de reprise
+    assert.strictEqual(tracker.checkAutoResume(5, 1000), false);
+    assert.strictEqual(tracker.isPaused(), true);
+
+    // t=2000 : 15 km/h (> 12 km/h) -> début du chronomètre de reprise
+    assert.strictEqual(tracker.checkAutoResume(15, 2000), false);
+    assert.strictEqual(tracker.isPaused(), true);
+
+    // t=4000 : 2s écoulées à 16 km/h -> pas encore 3s
+    assert.strictEqual(tracker.checkAutoResume(16, 4000), false);
+    assert.strictEqual(tracker.isPaused(), true);
+
+    // t=5100 : 3.1s écoulées à 18 km/h -> auto-reprise déclenchée
+    assert.strictEqual(tracker.checkAutoResume(18, 5100), true);
+    assert.strictEqual(tracker.isPaused(), false);
+  });
+
+  test('TripTracker sérialise et restaure totalTimeMs et isPaused', () => {
     const tracker1 = new TripTracker();
-    tracker1.restore({ distanceMeters: 12450, movingTimeMs: 2500000 });
+    tracker1.restore({
+      distanceMeters: 12450,
+      movingTimeMs: 2500000,
+      totalTimeMs: 3800000,
+      isPaused: true
+    });
     const data = tracker1.serialize();
 
     const tracker2 = new TripTracker();
     tracker2.restore(data);
     assert.strictEqual(tracker2.getDistanceKm(), tracker1.getDistanceKm());
     assert.strictEqual(tracker2.getMovingTimeSeconds(), tracker1.getMovingTimeSeconds());
+    assert.strictEqual(tracker2.getTotalTimeSeconds(), 3800);
+    assert.strictEqual(tracker2.isPaused(), true);
   });
 
   test('formatDistance applique les paliers adaptatifs (<10km: 2 déc, <100km: 1 déc, >=100km: 0 déc)', () => {
@@ -412,6 +495,35 @@ describe('Feuille de styles (CSS) - Estompement adouci et alerte GPS perdu à 10
     assert.ok(
       /\.hud-header\.dimmed\s+\.gps-badge\.status-error[^{]*\{[^}]*opacity:\s*1/i.test(cssContent),
       'Le badge GPS en statut ERROR (.status-error) doit repasser à opacity: 1 même avec .hud-header.dimmed'
+    );
+  });
+
+  test('L\'état en pause du bandeau n\'a pas de pourtour/outline orange', () => {
+    assert.ok(
+      !/\.hud-metrics\.is-paused[^{]*\{[^}]*outline:/i.test(cssContent),
+      'Le bandeau en pause ne doit plus avoir de bordure/outline orange'
+    );
+  });
+
+  test('Le toast de notification s\'affiche au-dessus des métriques avec un style épuré assorti au thème', () => {
+    assert.ok(
+      !/\.toast\s*\{[^}]*top:\s*50%/i.test(cssContent),
+      'Le toast ne doit plus être centré à top: 50% sur la vitesse géante'
+    );
+    assert.ok(
+      /\.toast\s*\{[^}]*bottom:\s*calc\(/i.test(cssContent),
+      'Le toast doit être positionné au-dessus des métriques via bottom'
+    );
+    assert.ok(
+      /\.toast\s*\{[^}]*background:\s*#000000/i.test(cssContent),
+      'Le toast doit avoir un fond noir pur #000000'
+    );
+  });
+
+  test('.metrics-hidden neutralise toute animation pour garantir un masquage complet', () => {
+    assert.ok(
+      /\.hud-metrics\.metrics-hidden[^{]*\{[^}]*animation:\s*none\s*!important/i.test(cssContent),
+      '.hud-metrics.metrics-hidden doit couper les animations avec !important'
     );
   });
 });
