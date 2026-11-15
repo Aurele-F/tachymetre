@@ -123,12 +123,10 @@ function updateGpsStatusUI(status) {
 }
 
 function updateTripUI(tracker) {
-  const distKm = tracker.getDistanceKm();
+  const formattedDist = tracker.getFormattedDistance();
   const avgKmh = tracker.getAverageSpeedKmh();
   const durationSec = tracker.getMovingTimeSeconds();
 
-  // 2 décimales sous 1 km pour voir immédiatement les mètres défiler, 1 décimale au-delà
-  const formattedDist = distKm < 1.0 ? distKm.toFixed(2) : distKm.toFixed(1);
   metricDistanceEl.innerHTML = `${formattedDist} <span class="unit">km</span>`;
   metricAvgEl.innerHTML = `${avgKmh.toFixed(1)} <span class="unit">km/h</span>`;
   metricDurationEl.textContent = tracker.formatDuration(durationSec);

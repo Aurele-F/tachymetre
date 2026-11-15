@@ -52,7 +52,8 @@ import {
 // --- Tests Task 2 : trip.js ---
 import {
   haversineDistanceMeters,
-  TripTracker
+  TripTracker,
+  formatDistance
 } from '../js/trip.js';
 
 // --- Tests Task 3 : geo.js ---
@@ -165,6 +166,24 @@ describe('Module trip - Calculateur de Trajet', () => {
     tracker2.restore(data);
     assert.strictEqual(tracker2.getDistanceKm(), tracker1.getDistanceKm());
     assert.strictEqual(tracker2.getMovingTimeSeconds(), tracker1.getMovingTimeSeconds());
+  });
+
+  test('formatDistance applique les paliers adaptatifs (<10km: 2 déc, <100km: 1 déc, >=100km: 0 déc)', () => {
+    // En dessous de 10 km : 2 décimales
+    assert.strictEqual(formatDistance(0), '0.00');
+    assert.strictEqual(formatDistance(0.05), '0.05');
+    assert.strictEqual(formatDistance(1.423), '1.42');
+    assert.strictEqual(formatDistance(9.994), '9.99');
+
+    // Entre 10 km et 100 km : 1 décimale
+    assert.strictEqual(formatDistance(10.0), '10.0');
+    assert.strictEqual(formatDistance(24.54), '24.5');
+    assert.strictEqual(formatDistance(99.88), '99.9');
+
+    // À partir de 100 km : 0 décimale
+    assert.strictEqual(formatDistance(100.0), '100');
+    assert.strictEqual(formatDistance(142.3), '142');
+    assert.strictEqual(formatDistance(250.8), '251');
   });
 });
 

@@ -3,7 +3,7 @@
  * Stratégie Cache-First pour un fonctionnement 100% autonome hors-ligne.
  */
 
-const CACHE_NAME = 'tachymetre-pwa-v6';
+const CACHE_NAME = 'tachymetre-pwa-v7';
 
 const ASSETS_TO_CACHE = [
   './',

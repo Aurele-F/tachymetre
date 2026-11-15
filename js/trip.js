@@ -128,6 +128,17 @@ export class TripTracker {
   }
 
   /**
+   * Formate la distance en kilomètres avec précision adaptative.
+   * - < 10 km  : 2 décimales (ex: 1.42)
+   * - < 100 km : 1 décimale (ex: 24.5)
+   * - >= 100 km: 0 décimale (ex: 125)
+   * @returns {string}
+   */
+  getFormattedDistance() {
+    return formatDistance(this.getDistanceKm());
+  }
+
+  /**
    * Sérialise l'état pour la persistance dans localStorage.
    * @returns {object}
    */
@@ -149,4 +160,27 @@ export class TripTracker {
     this.lastMoveTimestamp = null;
     this.lastPosition = null;
   }
+}
+
+/**
+ * Formate une distance en kilomètres selon les paliers de lisibilité :
+ * - En dessous de 10 km : 2 chiffres après la virgule (ex: 0.00, 1.42, 9.95)
+ * - À partir de 10 km et jusqu'à 100 km : 1 chiffre après la virgule (ex: 10.0, 24.5, 99.8)
+ * - À partir de 100 km : 0 chiffre après la virgule (ex: 100, 142)
+ *
+ * @param {number|null|undefined} distKm Distance en kilomètres
+ * @returns {string} Distance formatée
+ */
+export function formatDistance(distKm) {
+  if (distKm === null || distKm === undefined || isNaN(distKm) || distKm <= 0) {
+    return '0.00';
+  }
+
+  if (distKm < 10) {
+    return distKm.toFixed(2);
+  }
+  if (distKm < 100) {
+    return distKm.toFixed(1);
+  }
+  return Math.round(distKm).toString();
 }
