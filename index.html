@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr" class="theme-eco">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Tachymètre Vélo</title>
+  
+  <meta name="description" content="Compteur de vitesse sobre, économe en batterie et précis pour smartphone monté sur cintre de vélo.">
+  <meta name="theme-color" content="#000000">
+  <meta name="color-scheme" content="dark">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="hud-container" class="hud-container">
+    
+    <!-- En-tête statut et contrôles -->
+    <header class="hud-header" id="hud-header">
+      <div class="header-left">
+        <div id="gps-indicator" class="gps-badge status-searching" title="Statut GPS">
+          <span class="gps-dot"></span>
+          <span id="gps-text" class="gps-text">GPS...</span>
+        </div>
+      </div>
+      
+      <div class="header-right">
+        <button id="theme-toggle" class="icon-btn" aria-label="Changer de contraste (Éco / Plein Soleil)" title="Bascule Contraste">
+          <svg id="icon-sun" class="icon" viewBox="0 0 24 24" width="22" height="22">
+            <circle cx="12" cy="12" r="4" fill="currentColor"/>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+
+        <button id="fullscreen-btn" class="icon-btn" aria-label="Plein écran" title="Plein Écran">
+          <svg id="icon-fullscreen" class="icon" viewBox="0 0 24 24" width="22" height="22">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Zone principale : Vitesse géante -->
+    <main class="hud-main" id="hud-main">
+      <div class="speed-container">
+        <div id="speed-value" class="speed-value">--</div>
+        <div id="speed-unit" class="speed-unit">km/h</div>
+      </div>
+    </main>
+
+    <!-- Bandeau inférieur : Métriques de trajet (masquables au tap) -->
+    <footer class="hud-metrics" id="trip-metrics" title="Appui long pour réinitialiser le trajet">
+      <div class="metric-card">
+        <span class="metric-label">DISTANCE</span>
+        <span class="metric-val" id="metric-distance">0.0 <span class="unit">km</span></span>
+      </div>
+
+      <div class="metric-card">
+        <span class="metric-label">MOYENNE</span>
+        <span class="metric-val" id="metric-avg">0.0 <span class="unit">km/h</span></span>
+      </div>
+
+      <div class="metric-card">
+        <span class="metric-label">TEMPS</span>
+        <span class="metric-val" id="metric-duration">00:00</span>
+      </div>
+    </footer>
+
+    <!-- Toast de confirmation réinitialisation -->
+    <div id="reset-toast" class="toast">Trajet réinitialisé</div>
+
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then((reg) => {
+          console.log('[PWA] Service Worker enregistré avec succès:', reg.scope);
+        }).catch((err) => {
+          console.warn('[PWA] Échec de l\'enregistrement du Service Worker:', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>

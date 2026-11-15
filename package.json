@@ -1,0 +1,10 @@
+{
+  "name": "tachymetre",
+  "version": "1.0.0",
+  "description": "Progressive Web App de compteur de vitesse vélo épuré et économe",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node tests/test-runner.js"
+  }
+}

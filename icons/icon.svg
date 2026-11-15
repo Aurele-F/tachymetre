@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="128" fill="#000000" />
+  
+  <!-- Cadran Tachymètre épuré -->
+  <path d="M 120 360 A 180 180 0 1 1 392 360" fill="none" stroke="#222222" stroke-width="28" stroke-linecap="round" />
+  
+  <!-- Arc actif haute visibilité -->
+  <path d="M 120 360 A 180 180 0 0 1 320 110" fill="none" stroke="#4ade80" stroke-width="28" stroke-linecap="round" />
+
+  <!-- Aiguille centrale épurée -->
+  <line x1="256" y1="280" x2="310" y2="130" stroke="#ffffff" stroke-width="12" stroke-linecap="round" />
+  <circle cx="256" cy="280" r="22" fill="#222222" stroke="#ffffff" stroke-width="8" />
+
+  <!-- Symbole vélo minimaliste en bas -->
+  <g transform="translate(206, 380) scale(1.0)" fill="none" stroke="#666666" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Roues -->
+    <circle cx="20" cy="50" r="16" />
+    <circle cx="80" cy="50" r="16" />
+    <!-- Cadre -->
+    <path d="M 20 50 L 45 50 L 62 26 L 38 26 Z" />
+    <path d="M 45 50 L 52 14" />
+    <path d="M 80 50 L 62 26 L 68 14 L 60 14" />
+    <!-- Selle -->
+    <path d="M 46 14 L 58 14" />
+  </g>
+</svg>

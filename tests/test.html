@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Tests Unitaires - Tachymètre PWA</title>
+  <style>
+    body {
+      background: #111;
+      color: #eee;
+      font-family: monospace;
+      padding: 20px;
+    }
+    .pass { color: #4ade80; }
+    .fail { color: #f87171; font-weight: bold; }
+    h1 { font-size: 1.2rem; }
+    #log { white-space: pre-wrap; background: #1e1e1e; padding: 15px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>Suite de Tests Unitaires - Tachymètre PWA</h1>
+  <div id="log">Exécution des tests en cours...</div>
+
+  <script type="module">
+    const logEl = document.getElementById('log');
+    let output = '';
+
+    const origLog = console.log;
+    const origError = console.error;
+
+    console.log = (...args) => {
+      origLog(...args);
+      output += args.join(' ') + '\n';
+      logEl.innerText = output;
+    };
+
+    console.error = (...args) => {
+      origError(...args);
+      output += 'ERROR: ' + args.join(' ') + '\n';
+      logEl.innerText = output;
+    };
+
+    try {
+      const module = await import('./test-runner.js');
+      const summary = module.getSummary();
+      output += `\n[BILAN] Total: ${summary.total} | Réussis: ${summary.passed} | Échecs: ${summary.failed}\n`;
+      logEl.innerText = output;
+      if (summary.failed === 0) {
+        logEl.className = 'pass';
+      } else {
+        logEl.className = 'fail';
+      }
+    } catch (err) {
+      console.error('Erreur fatale lors de l\'exécution du test runner:', err);
+    }
+  </script>
+</body>
+</html>
