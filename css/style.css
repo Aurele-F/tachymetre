@@ -14,6 +14,9 @@
   --status-searching: #f59e0b;
   --status-active: #22c55e;
   --status-lost: #ef4444;
+
+  /* Estompement adouci de l'en-tête */
+  --header-dim-opacity: 0.45;
 }
 
 html.theme-sun {
@@ -23,6 +26,7 @@ html.theme-sun {
   --metric-val-color: #f1f5f9;
   --metric-lbl-color: #94a3b8;
   --icon-color: #cbd5e1;
+  --header-dim-opacity: 0.45;
 }
 
 * {
@@ -65,17 +69,30 @@ html, body {
   width: 100%;
   height: 44px;
   z-index: 10;
-  transition: opacity 0.4s ease;
-}
-
-.hud-header.dimmed {
-  opacity: 0.15;
 }
 
 .header-left, .header-right {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+/* Transitions douces sur les éléments de l'en-tête */
+.hud-header .header-right,
+.hud-header .gps-badge {
+  transition: opacity 0.4s ease;
+}
+
+/* Estompement adouci après inactivité tactile */
+.hud-header.dimmed .header-right,
+.hud-header.dimmed .gps-badge {
+  opacity: var(--header-dim-opacity, 0.45);
+}
+
+/* En cas de perte de signal GPS ou erreur, l'indicateur reste à 100% sans réveiller le reste */
+.hud-header.dimmed .gps-badge.status-lost,
+.hud-header.dimmed .gps-badge.status-error {
+  opacity: 1;
 }
 
 /* Badge Statut GPS */

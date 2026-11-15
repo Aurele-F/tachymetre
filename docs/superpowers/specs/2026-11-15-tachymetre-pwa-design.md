@@ -62,12 +62,13 @@ L'interface s'adapte aussi bien en mode portrait qu'en mode paysage :
 - **Bouton Plein Écran (`[⛶]` / `[🗗]`) :**
   - Entrée en mode immersif via `document.documentElement.requestFullscreen()`.
   - Sortie via `document.exitFullscreen()` ou par le geste natif Android (glisser du bord).
-  - L'icône de l'en-tête s'estompe après 5 secondes d'inactivité et réapparaît au toucher.
+  - L'en-tête (boutons et indicateur GPS normal) s'estompe doucement (`opacity: 0.45`) après 5 secondes d'inactivité et réapparaît à 100 % au toucher.
+  - En cas de perte de signal GPS ou d'erreur, le voyant GPS repasse automatiquement à 100 % d'opacité (en rouge) sans impacter les autres éléments estompés.
 
 ### 2.4 Indicateur de Statut GPS
 - **Pulsation grise/orange :** En attente du premier signal GPS valide.
 - **Point fixe discret vert/gris :** Signal actif et précis (`accuracy <= 25 m`).
-- **Icône barrée rouge / avertissement discret :** Aucun signal reçu depuis plus de 4 secondes (watchdog déclenché).
+- **Alerte rouge à 100% d'opacité :** Aucun signal reçu depuis plus de 4 secondes (watchdog déclenché ou erreur), toujours affiché à pleine luminosité même si l'en-tête est estompée.
 
 ---
 

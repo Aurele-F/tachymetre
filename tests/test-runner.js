@@ -364,6 +364,58 @@ describe('Module wakelock & light - Verrou d\'écran et Capteur de luminosité',
   });
 });
 
+let cssContent = '';
+if (typeof process !== 'undefined' && process.versions && process.versions.node) {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const url = await import('node:url');
+  const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
+  cssContent = fs.readFileSync(path.join(__dirname, '../css/style.css'), 'utf-8');
+} else if (typeof window !== 'undefined' && window.fetch) {
+  try {
+    const res = await fetch('../css/style.css');
+    cssContent = await res.text();
+  } catch (e) {}
+}
+
+describe('Feuille de styles (CSS) - Estompement adouci et alerte GPS perdu à 100%', () => {
+  test('Le conteneur global .hud-header.dimmed n\'écrase plus l\'opacité de ses enfants à 0.15', () => {
+    assert.ok(cssContent.length > 0, 'Le fichier css/style.css doit être accessible');
+    assert.ok(
+      !/\.hud-header\.dimmed\s*\{\s*opacity:\s*0\.15/i.test(cssContent),
+      'L\'opacité de 0.15 sur .hud-header.dimmed doit être supprimée pour ne pas écraser les enfants'
+    );
+  });
+
+  test('--header-dim-opacity est défini avec une opacité adoucie (>= 0.40)', () => {
+    assert.ok(
+      /--header-dim-opacity:\s*0\.[4-9]/i.test(cssContent),
+      'La variable --header-dim-opacity doit être définie avec une valeur adoucie >= 0.40'
+    );
+  });
+
+  test('L\'estompement cible les contrôles de droite et le badge GPS avec la variable adoucie', () => {
+    assert.ok(
+      /\.hud-header\.dimmed\s+.*\.header-right/i.test(cssContent) && /\.hud-header\.dimmed\s+.*\.gps-badge/i.test(cssContent),
+      'L\'estompement doit cibler séparément .header-right et .gps-badge'
+    );
+  });
+
+  test('L\'indicateur GPS en statut LOST revient à 100% d\'opacité quand l\'en-tête est dimmed', () => {
+    assert.ok(
+      /\.hud-header\.dimmed\s+\.gps-badge\.status-lost[^{]*\{[^}]*opacity:\s*1/i.test(cssContent),
+      'Le badge GPS en statut LOST (.status-lost) doit repasser à opacity: 1 même avec .hud-header.dimmed'
+    );
+  });
+
+  test('L\'indicateur GPS en statut ERROR revient à 100% d\'opacité quand l\'en-tête est dimmed', () => {
+    assert.ok(
+      /\.hud-header\.dimmed\s+\.gps-badge\.status-error[^{]*\{[^}]*opacity:\s*1/i.test(cssContent),
+      'Le badge GPS en statut ERROR (.status-error) doit repasser à opacity: 1 même avec .hud-header.dimmed'
+    );
+  });
+});
+
 export function getSummary() {
   return { total: totalTests, passed: passedTests, failed: failedTests, results };
 }
