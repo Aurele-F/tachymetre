@@ -291,7 +291,8 @@ describe('Module trip - Calculateur de Trajet', () => {
       distanceMeters: 12450,
       movingTimeMs: 2500000,
       totalTimeMs: 3800000,
-      isPaused: true
+      isPaused: true,
+      lastSavedTimestamp: 123456789
     });
     const data = tracker1.serialize();
 
@@ -301,6 +302,49 @@ describe('Module trip - Calculateur de Trajet', () => {
     assert.strictEqual(tracker2.getMovingTimeSeconds(), tracker1.getMovingTimeSeconds());
     assert.strictEqual(tracker2.getTotalTimeSeconds(), 3800);
     assert.strictEqual(tracker2.isPaused(), true);
+    assert.strictEqual(tracker2.lastSavedTimestamp, tracker1.lastSavedTimestamp);
+    assert.ok(tracker2.lastSavedTimestamp > 0);
+  });
+
+  test('TripTracker.determineStartupAction gère l\'absence de trajet précédent', () => {
+    assert.strictEqual(TripTracker.determineStartupAction(null).action, 'none');
+    assert.strictEqual(TripTracker.determineStartupAction({ distanceMeters: 0 }).action, 'none');
+  });
+
+  test('TripTracker.determineStartupAction propose la reprise par défaut si moins de 2h se sont écoulées', () => {
+    const saved = {
+      distanceMeters: 14200,
+      movingTimeMs: 2400000,
+      totalTimeMs: 2700000,
+      lastSavedTimestamp: 10000000
+    };
+    // 45 minutes plus tard (< 2h)
+    const now = 10000000 + 45 * 60 * 1000;
+    const decision = TripTracker.determineStartupAction(saved, now);
+
+    assert.strictEqual(decision.action, 'prompt');
+    assert.strictEqual(decision.defaultChoice, 'resume');
+    assert.strictEqual(decision.buttonLabel, 'Nouveau trajet');
+    assert.strictEqual(decision.alternativeChoice, 'new');
+    assert.closeTo(decision.distanceKm, 14.2, 0.01);
+  });
+
+  test('TripTracker.determineStartupAction propose un nouveau trajet par défaut si plus de 2h se sont écoulées', () => {
+    const saved = {
+      distanceMeters: 24500,
+      movingTimeMs: 4000000,
+      totalTimeMs: 4500000,
+      lastSavedTimestamp: 10000000
+    };
+    // 3 heures plus tard (>= 2h)
+    const now = 10000000 + 3 * 3600 * 1000;
+    const decision = TripTracker.determineStartupAction(saved, now);
+
+    assert.strictEqual(decision.action, 'prompt');
+    assert.strictEqual(decision.defaultChoice, 'new');
+    assert.strictEqual(decision.buttonLabel, 'Reprendre (24.5 km)');
+    assert.strictEqual(decision.alternativeChoice, 'resume');
+    assert.closeTo(decision.distanceKm, 24.5, 0.01);
   });
 
   test('formatDistance applique les paliers adaptatifs (<10km: 2 déc, <100km: 1 déc, >=100km: 0 déc)', () => {
@@ -595,6 +639,17 @@ describe('Feuille de styles (CSS) - Estompement adouci et alerte GPS perdu à 10
     assert.ok(
       /\.hud-metrics\.metrics-hidden[^{]*\{[^}]*animation:\s*none\s*!important/i.test(cssContent),
       '.hud-metrics.metrics-hidden doit couper les animations avec !important'
+    );
+  });
+
+  test('.showing-startup-prompt masque les cartes et les points de pagination avec un bouton dimensionné', () => {
+    assert.ok(
+      /\.hud-metrics\.showing-startup-prompt\s+\.carousel-dots[^{]*\{[^}]*display:\s*none\s*!important/i.test(cssContent),
+      'Les points de pagination doivent être masqués avec !important'
+    );
+    assert.ok(
+      /\.startup-btn\s*\{[^}]*height:\s*5[0-9]px/i.test(cssContent),
+      'Le bouton de démarrage doit avoir une hauteur adaptée (>= 50px)'
     );
   });
 });

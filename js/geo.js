@@ -175,9 +175,10 @@ export class GeoManager {
     let curLat = 48.8584;
     let curLon = 2.2945;
 
-    // Profil de vitesse réaliste en m/s (démarrage, vitesse de croisière 28-30 km/h, arrêt feu rouge, reprise)
+    // Profil de vitesse réaliste en m/s (7s d'arrêt initial pour tester les boutons, accélération vers 30 km/h, feux, reprise)
     const speedProfile = [
-      0, 2.2, 4.5, 6.2, 7.5, 8.0, 8.2, 8.4, 8.3, 8.5, 8.3, 8.2, // Accélération vers 30 km/h
+      0, 0, 0, 0, 0, 0, 0,                                        // Arrêt initial au chargement (~7 secondes)
+      2.2, 4.5, 6.2, 7.5, 8.0, 8.2, 8.4, 8.3, 8.5, 8.3, 8.2,     // Accélération vers 30 km/h
       8.3, 8.1, 8.4, 8.2, 8.5, 8.3, 8.2,                         // Allure de croisière (~30 km/h)
       6.0, 3.5, 1.2, 0, 0, 0,                                    // Décélération et arrêt au feu rouge
       2.5, 5.2, 7.2, 8.1, 8.3                                    // Redémarrage

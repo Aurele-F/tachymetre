@@ -63,6 +63,10 @@ L'interface s'adapte aussi bien en mode portrait qu'en mode paysage :
   - **Auto-reprise au roulage :** Si la pause est active et que la vitesse dépasse **12 km/h pendant 3 secondes consécutives**, la mesure reprend automatiquement.
   - **Swipe horizontal (glissement gauche/droite) :** Bascule le carrousel entre la **Vue 1 (Roulage)** (`DISTANCE`, `MOYENNE`, `TEMPS`) et la **Vue 2 (Global)** (`DISTANCE`, `MOY. TOTALE`, `TEMPS TOTAL` feux et arrêts inclus). Deux points de pagination indiquent la vue active et le choix est conservé dans `localStorage`.
   - **Appui long (2 secondes) :** Réinitialise le trajet en cours (distance, chronos et moyennes remis à zéro) avec le toast *"Trajet réinitialisé"*.
+  - **Démarrage intelligent (Reprise vs Nouveau trajet) :** À l'ouverture de l'application, si un trajet antérieur existe ($d > 0$), un bouton sobre d'alternative s'affiche dans le bandeau inférieur :
+    - Si inactivité $< 2\text{ heures}$ : reprise par défaut, le bouton propose *"Nouveau trajet"*. En cas de confirmation de reprise (bouton swipé ou disparition automatique dès que le vélo commence à rouler), un toast confirme *"Trajet repris - appui long pour réinitialiser"*.
+    - Si inactivité $\ge 2\text{ heures}$ : nouveau départ par défaut, le bouton propose *"Reprendre (xx km)"*.
+    - Le bouton disparaît automatiquement dès que le vélo roule ($v > 0\text{ km/h}$), sur appui du bouton, ou lors d'un swipe horizontal (ce swipe masquant le bouton sans faire tourner le carrousel).
 - **Bouton Plein Écran (`[⛶]` / `[🗗]`) :**
   - Entrée en mode immersif via `document.documentElement.requestFullscreen()`.
   - Sortie via `document.exitFullscreen()` ou par le geste natif Android (glisser du bord).

@@ -29,6 +29,7 @@ const metricDurationEl = document.getElementById('metric-duration');
 const metricLabelAvgEl = document.getElementById('metric-label-avg');
 const metricLabelDurationEl = document.getElementById('metric-label-duration');
 const metricsDotsEl = document.getElementById('metrics-dots');
+const startupActionBtn = document.getElementById('startup-action-btn');
 const resetToastEl = document.getElementById('reset-toast');
 
 // Mode de vue actif du bandeau : 'moving' (temps de roulage) ou 'total' (temps global)
@@ -42,19 +43,85 @@ try {
 
 // 1. Initialisation du suivi de trajet
 const tripTracker = new TripTracker();
+let savedTripSnapshot = null;
+let currentStartupDecision = null;
 
-// Restauration de l'état précédent si disponible
 try {
-  const savedData = localStorage.getItem(STORAGE_KEY_TRIP);
-  if (savedData) {
-    tripTracker.restore(JSON.parse(savedData));
+  const rawData = localStorage.getItem(STORAGE_KEY_TRIP);
+  if (rawData) {
+    savedTripSnapshot = JSON.parse(rawData);
   }
-} catch (e) {
-  // Ignorer les erreurs de parsing localStorage
+} catch (e) {}
+
+// Analyse de l'action de démarrage selon le délai d'inactivité (seuil de 2 heures)
+currentStartupDecision = TripTracker.determineStartupAction(savedTripSnapshot);
+
+if (currentStartupDecision.action === 'prompt') {
+  if (currentStartupDecision.defaultChoice === 'resume') {
+    // Reprise par défaut (< 2h)
+    tripTracker.restore(savedTripSnapshot);
+  } else {
+    // Nouveau trajet par défaut (>= 2h)
+    tripTracker.reset();
+  }
+  showStartupPrompt(currentStartupDecision.buttonLabel);
+} else {
+  // Pas de trajet antérieur significatif
+  if (savedTripSnapshot) {
+    tripTracker.restore(savedTripSnapshot);
+  }
 }
 
 // Mise à jour de l'affichage initial des métriques
 updateTripUI(tripTracker);
+
+function showStartupPrompt(label) {
+  if (!startupActionBtn) return;
+  startupActionBtn.textContent = label;
+  startupActionBtn.style.display = 'flex';
+  tripMetricsEl.classList.add('showing-startup-prompt');
+}
+
+function dismissStartupPrompt() {
+  if (!tripMetricsEl.classList.contains('showing-startup-prompt')) return;
+  tripMetricsEl.classList.remove('showing-startup-prompt');
+  if (startupActionBtn) {
+    startupActionBtn.style.display = 'none';
+  }
+  currentStartupDecision = null;
+}
+
+function handleStartupActionClick() {
+  if (!currentStartupDecision) {
+    dismissStartupPrompt();
+    return;
+  }
+
+  if (currentStartupDecision.alternativeChoice === 'new') {
+    tripTracker.reset();
+    updateTripUI(tripTracker);
+    try {
+      localStorage.removeItem(STORAGE_KEY_TRIP);
+    } catch (err) {}
+    showToast('Nouveau trajet commencé');
+  } else if (currentStartupDecision.alternativeChoice === 'resume' && savedTripSnapshot) {
+    tripTracker.restore(savedTripSnapshot);
+    updateTripUI(tripTracker);
+    showToast('Trajet repris - appui long pour réinitialiser');
+    try {
+      localStorage.setItem(STORAGE_KEY_TRIP, JSON.stringify(tripTracker.serialize()));
+    } catch (err) {}
+  }
+
+  dismissStartupPrompt();
+}
+
+if (startupActionBtn) {
+  startupActionBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    handleStartupActionClick();
+  });
+}
 
 // Sauvegarde automatique toutes les 5 secondes
 setInterval(() => {
@@ -102,6 +169,15 @@ const geoManager = new GeoManager({
   tripTracker,
   onSpeed: (speedKmh) => {
     speedValueEl.textContent = formatSpeed(speedKmh);
+
+    // Masquage du bouton d'alternative dès qu'on commence à rouler
+    if (speedKmh > 0 && currentStartupDecision) {
+      if (currentStartupDecision.defaultChoice === 'resume') {
+        showToast('Trajet repris - appui long pour réinitialiser');
+      }
+      dismissStartupPrompt();
+    }
+
     // Détection d'auto-reprise (> 12 km/h pendant 3s)
     if (tripTracker.isPaused()) {
       const autoResumed = tripTracker.checkAutoResume(speedKmh, Date.now(), 12, 3);
@@ -310,9 +386,10 @@ function showToast(message) {
   resetToastEl.textContent = message;
   resetToastEl.classList.add('show');
   if (toastTimeout) clearTimeout(toastTimeout);
+  const displayMs = message.length > 25 ? 3200 : 2200;
   toastTimeout = setTimeout(() => {
     resetToastEl.classList.remove('show');
-  }, 2200);
+  }, displayMs);
 }
 
 function switchMetricsView(targetView) {
@@ -328,6 +405,7 @@ function switchMetricsView(targetView) {
 }
 
 function resetTripWithToast() {
+  dismissStartupPrompt();
   tripTracker.reset();
   updateTripUI(tripTracker);
   try {
@@ -336,7 +414,10 @@ function resetTripWithToast() {
   showToast('Trajet réinitialisé');
 }
 
+let pointerDownOnStartupBtn = false;
+
 function onMetricsPointerDown(e) {
+  pointerDownOnStartupBtn = Boolean(e.target.closest('#startup-action-btn'));
   isPointerDown = true;
   pointerStartX = e.clientX;
   pointerStartY = e.clientY;
@@ -345,10 +426,13 @@ function onMetricsPointerDown(e) {
   longPressTriggered = false;
 
   if (longPressTimer) clearTimeout(longPressTimer);
-  longPressTimer = setTimeout(() => {
-    longPressTriggered = true;
-    resetTripWithToast();
-  }, 2000);
+  // Ne pas armer de réinitialisation par appui long si l'utilisateur appuie sur le bouton de démarrage
+  if (!pointerDownOnStartupBtn) {
+    longPressTimer = setTimeout(() => {
+      longPressTriggered = true;
+      resetTripWithToast();
+    }, 2000);
+  }
 
   try {
     tripMetricsEl.setPointerCapture(e.pointerId);
@@ -373,7 +457,15 @@ function onMetricsPointerMove(e) {
   // Swipe horizontal détecté (amplitude >= 40px)
   if (Math.abs(deltaX) >= 40 && !isSwiping && !longPressTriggered) {
     isSwiping = true;
-    switchMetricsView();
+    if (currentStartupDecision && tripMetricsEl.classList.contains('showing-startup-prompt')) {
+      // Un swipe sur le bouton de démarrage le masque sans faire tourner le carrousel
+      if (currentStartupDecision.defaultChoice === 'resume') {
+        showToast('Trajet repris - appui long pour réinitialiser');
+      }
+      dismissStartupPrompt();
+    } else {
+      switchMetricsView();
+    }
   }
 }
 
@@ -391,6 +483,7 @@ function onMetricsPointerUp(e) {
   }
 
   if (longPressTriggered) {
+    pointerDownOnStartupBtn = false;
     return;
   }
 
@@ -400,6 +493,13 @@ function onMetricsPointerUp(e) {
 
   // Simple tap confirmé : durée courte (< 350ms) et déplacement quasi nul (< 15px)
   if (!isSwiping && duration < 350 && deltaX < 15 && deltaY < 15) {
+    // Si le tap a été initié sur le bouton de démarrage, exécuter son action et ne JAMAIS mettre en pause
+    if (pointerDownOnStartupBtn) {
+      pointerDownOnStartupBtn = false;
+      handleStartupActionClick();
+      return;
+    }
+
     const isPaused = tripTracker.togglePause();
     if (isPaused) {
       tripMetricsEl.classList.remove('metrics-hidden');
@@ -410,10 +510,13 @@ function onMetricsPointerUp(e) {
       localStorage.setItem(STORAGE_KEY_TRIP, JSON.stringify(tripTracker.serialize()));
     } catch (err) {}
   }
+
+  pointerDownOnStartupBtn = false;
 }
 
 function onMetricsPointerCancel(e) {
   isPointerDown = false;
+  pointerDownOnStartupBtn = false;
   try {
     tripMetricsEl.releasePointerCapture(e.pointerId);
   } catch (err) {}

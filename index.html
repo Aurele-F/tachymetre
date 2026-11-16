@@ -67,6 +67,9 @@
 
     <!-- Bandeau inférieur : Métriques de trajet (carrousel roulage/global, tap = pause/reprise, appui long = réinitialiser) -->
     <footer class="hud-metrics" id="trip-metrics" title="Tap : pause / reprise | Glisser : changer de vue | Appui long : réinitialiser">
+      <!-- Bouton d'alternative au démarrage (Nouveau trajet ou Reprendre) -->
+      <button id="startup-action-btn" class="startup-btn" style="display: none;"></button>
+
       <div class="metric-card">
         <span class="metric-label" id="metric-label-distance">DISTANCE</span>
         <span class="metric-val" id="metric-distance">0.0 <span class="unit">km</span></span>

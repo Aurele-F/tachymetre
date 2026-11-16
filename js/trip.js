@@ -42,6 +42,7 @@ export class TripTracker {
     this.movingTimeMs = 0;
     this.totalTimeMs = 0;
     this.paused = false;
+    this.lastSavedTimestamp = null;
     this.lastMoveTimestamp = null;
     this.lastPosition = null;
     this.lastUpdateTimestamp = null;
@@ -277,11 +278,13 @@ export class TripTracker {
    * @returns {object}
    */
   serialize() {
+    this.lastSavedTimestamp = Date.now();
     return {
       distanceMeters: this.distanceMeters,
       movingTimeMs: this.movingTimeMs,
       totalTimeMs: this.totalTimeMs,
-      isPaused: this.paused
+      isPaused: this.paused,
+      lastSavedTimestamp: this.lastSavedTimestamp
     };
   }
 
@@ -295,10 +298,50 @@ export class TripTracker {
     this.movingTimeMs = Number(data.movingTimeMs) || 0;
     this.totalTimeMs = Number(data.totalTimeMs) || 0;
     this.paused = Boolean(data.isPaused);
+    this.lastSavedTimestamp = Number(data.lastSavedTimestamp) || null;
     this.lastMoveTimestamp = null;
     this.lastPosition = null;
     this.lastUpdateTimestamp = null;
     this.autoResumeStartMs = null;
+  }
+
+  /**
+   * Analyse les données sauvegardées pour déterminer l'option de démarrage par défaut
+   * et le libellé du bouton d'alternative.
+   *
+   * @param {object|null} savedData Données stockées dans localStorage
+   * @param {number} [now=Date.now()] Horodatage actuel
+   * @param {number} [thresholdMs=7200000] Seuil de bascule (2 heures par défaut)
+   * @returns {{ action: 'none'|'prompt', defaultChoice?: 'resume'|'new', alternativeChoice?: 'resume'|'new', buttonLabel?: string, distanceKm?: number }}
+   */
+  static determineStartupAction(savedData, now = Date.now(), thresholdMs = 2 * 3600 * 1000) {
+    if (!savedData || Number(savedData.distanceMeters) <= 0) {
+      return { action: 'none' };
+    }
+
+    const distanceKm = Number(savedData.distanceMeters) / 1000;
+    const lastTime = Number(savedData.lastSavedTimestamp) || 0;
+    const elapsedMs = now - lastTime;
+
+    if (elapsedMs < thresholdMs) {
+      // Moins de 2h : reprise par défaut, proposition de démarrer un nouveau trajet
+      return {
+        action: 'prompt',
+        defaultChoice: 'resume',
+        alternativeChoice: 'new',
+        buttonLabel: 'Nouveau trajet',
+        distanceKm
+      };
+    } else {
+      // Plus de 2h : nouveau trajet par défaut, proposition de reprendre l'ancien
+      return {
+        action: 'prompt',
+        defaultChoice: 'new',
+        alternativeChoice: 'resume',
+        buttonLabel: `Reprendre (${formatDistance(distanceKm)} km)`,
+        distanceKm
+      };
+    }
   }
 }
 
