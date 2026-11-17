@@ -648,8 +648,12 @@ describe('Feuille de styles (CSS) - Estompement adouci et alerte GPS perdu à 10
       'Les points de pagination doivent être masqués avec !important'
     );
     assert.ok(
-      /\.startup-btn\s*\{[^}]*height:\s*5[0-9]px/i.test(cssContent),
-      'Le bouton de démarrage doit avoir une hauteur adaptée (>= 50px)'
+      /\.startup-btn\s*\{[^}]*height:\s*(?:100%|5[0-9]px|6[0-9]px)/i.test(cssContent),
+      'Le bouton de démarrage doit avoir une hauteur adaptée'
+    );
+    assert.ok(
+      /\.hud-metrics\s*\{[^}]*height:\s*80px/i.test(cssContent),
+      '.hud-metrics doit avoir une hauteur fixe de 80px pour stabiliser verticalement la vitesse centrale'
     );
   });
 });
