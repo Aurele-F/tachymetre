@@ -357,14 +357,14 @@ export class TripTracker {
  */
 export function formatDistance(distKm) {
   if (distKm === null || distKm === undefined || isNaN(distKm) || distKm <= 0) {
-    return '0.00';
+    return '0,00';
   }
 
   if (distKm < 10) {
-    return distKm.toFixed(2);
+    return distKm.toFixed(2).replace('.', ',');
   }
   if (distKm < 100) {
-    return distKm.toFixed(1);
+    return distKm.toFixed(1).replace('.', ',');
   }
   return Math.round(distKm).toString();
 }

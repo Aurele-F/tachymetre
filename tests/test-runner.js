@@ -107,14 +107,14 @@ describe('Module speed-filter', () => {
     assert.strictEqual(formatSpeed(24.8), '25');
   });
 
-  test('formatAverageSpeed renvoie "--" si la moyenne est null ou indisponible, et "0.0" pour 0', () => {
+  test('formatAverageSpeed renvoie "--" si la moyenne est null ou indisponible, et "0,0" pour 0', () => {
     assert.strictEqual(formatAverageSpeed(null), '--');
     assert.strictEqual(formatAverageSpeed(undefined), '--');
     assert.strictEqual(formatAverageSpeed(NaN), '--');
     assert.strictEqual(formatAverageSpeed(-1), '--');
-    assert.strictEqual(formatAverageSpeed(0), '0.0');
-    assert.strictEqual(formatAverageSpeed(21.42), '21.4');
-    assert.strictEqual(formatAverageSpeed(4.0), '4.0');
+    assert.strictEqual(formatAverageSpeed(0), '0,0');
+    assert.strictEqual(formatAverageSpeed(21.42), '21,4');
+    assert.strictEqual(formatAverageSpeed(4.0), '4,0');
   });
 });
 
@@ -176,7 +176,7 @@ describe('Module trip - Calculateur de Trajet', () => {
     assert.strictEqual(tracker.getDistanceKm(), 0, 'La distance au démarrage doit être nulle');
     assert.strictEqual(tracker.getMovingTimeSeconds(), 0, 'Le temps en mouvement au démarrage doit être nul');
     assert.strictEqual(tracker.getTotalTimeSeconds(), 0, 'Le temps total au démarrage doit être nul');
-    assert.strictEqual(tracker.getFormattedDistance(), '0.00');
+    assert.strictEqual(tracker.getFormattedDistance(), '0,00');
     assert.strictEqual(tracker.formatDuration(0), '00:00');
     assert.strictEqual(tracker.getMovingAverageSpeedKmh(), null, 'Moyenne non établie au démarrage');
     assert.strictEqual(tracker.getTotalAverageSpeedKmh(), null, 'Moyenne totale non établie au démarrage');
@@ -285,7 +285,7 @@ describe('Module trip - Calculateur de Trajet', () => {
     assert.strictEqual(tracker.getMovingAverageSpeedKmh(), null);
     // Mais la moyenne totale est désormais disponible et vaut 0.0 km/h !
     assert.strictEqual(tracker.getTotalAverageSpeedKmh(), 0);
-    assert.strictEqual(formatAverageSpeed(tracker.getTotalAverageSpeedKmh()), '0.0');
+    assert.strictEqual(formatAverageSpeed(tracker.getTotalAverageSpeedKmh()), '0,0');
     assert.strictEqual(formatAverageSpeed(tracker.getMovingAverageSpeedKmh()), '--');
   });
 
@@ -367,7 +367,7 @@ describe('Module trip - Calculateur de Trajet', () => {
 
     assert.strictEqual(decision.action, 'prompt');
     assert.strictEqual(decision.defaultChoice, 'new');
-    assert.strictEqual(decision.buttonLabel, 'Reprendre (24.5 km)');
+    assert.strictEqual(decision.buttonLabel, 'Reprendre (24,5 km)');
     assert.strictEqual(decision.alternativeChoice, 'resume');
     assert.closeTo(decision.distanceKm, 24.5, 0.01);
   });
@@ -409,15 +409,15 @@ describe('Module trip - Calculateur de Trajet', () => {
 
   test('formatDistance applique les paliers adaptatifs (<10km: 2 déc, <100km: 1 déc, >=100km: 0 déc)', () => {
     // En dessous de 10 km : 2 décimales
-    assert.strictEqual(formatDistance(0), '0.00');
-    assert.strictEqual(formatDistance(0.05), '0.05');
-    assert.strictEqual(formatDistance(1.423), '1.42');
-    assert.strictEqual(formatDistance(9.994), '9.99');
+    assert.strictEqual(formatDistance(0), '0,00');
+    assert.strictEqual(formatDistance(0.05), '0,05');
+    assert.strictEqual(formatDistance(1.423), '1,42');
+    assert.strictEqual(formatDistance(9.994), '9,99');
 
     // Entre 10 km et 100 km : 1 décimale
-    assert.strictEqual(formatDistance(10.0), '10.0');
-    assert.strictEqual(formatDistance(24.54), '24.5');
-    assert.strictEqual(formatDistance(99.88), '99.9');
+    assert.strictEqual(formatDistance(10.0), '10,0');
+    assert.strictEqual(formatDistance(24.54), '24,5');
+    assert.strictEqual(formatDistance(99.88), '99,9');
 
     // À partir de 100 km : 0 décimale
     assert.strictEqual(formatDistance(100.0), '100');
