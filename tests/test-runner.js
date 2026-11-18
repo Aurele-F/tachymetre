@@ -681,6 +681,25 @@ describe('Feuille de styles (CSS) - Estompement adouci et alerte GPS perdu à 10
       '.hud-metrics doit avoir une hauteur fixe de 80px pour stabiliser verticalement la vitesse centrale'
     );
   });
+
+  test('.speed-value et .hud-main verrouillent la boîte de vitesse à height: 1em et min-height: 0', () => {
+    assert.ok(
+      /\.speed-value\s*\{[^}]*height:\s*1em/i.test(cssContent),
+      '.speed-value doit avoir height: 1em pour ne pas varier entre "--" et un nombre'
+    );
+    assert.ok(
+      /\.speed-value\s*\{[^}]*line-height:\s*1/i.test(cssContent),
+      '.speed-value doit avoir line-height: 1'
+    );
+    assert.ok(
+      /\.hud-main\s*\{[^}]*min-height:\s*0/i.test(cssContent),
+      '.hud-main doit avoir min-height: 0 pour ne jamais repousser le bandeau inférieur'
+    );
+    assert.ok(
+      /\.hud-metrics\s*\{[^}]*flex-shrink:\s*0/i.test(cssContent),
+      '.hud-metrics doit avoir flex-shrink: 0 pour rester parfaitement figé'
+    );
+  });
 });
 
 export function getSummary() {

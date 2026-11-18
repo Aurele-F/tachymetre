@@ -68,6 +68,7 @@ html, body {
   align-items: center;
   width: 100%;
   height: 44px;
+  flex-shrink: 0;
   z-index: 10;
 }
 
@@ -188,7 +189,8 @@ html.theme-sun .icon-sun-off {
 
 /* Zone Vitesse Principale */
 .hud-main {
-  flex: 1;
+  flex: 1 1 0px;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -200,7 +202,6 @@ html.theme-sun .icon-sun-off {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  line-height: 0.9;
 }
 
 .speed-value {
@@ -210,6 +211,11 @@ html.theme-sun .icon-sun-off {
   color: var(--speed-color);
   text-align: center;
   will-change: transform;
+  height: 1em;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .speed-unit {
@@ -219,6 +225,7 @@ html.theme-sun .icon-sun-off {
   color: var(--unit-color);
   text-transform: lowercase;
   margin-top: 4px;
+  line-height: 1;
 }
 
 /* Volet Métriques Secondaires */
@@ -229,6 +236,7 @@ html.theme-sun .icon-sun-off {
   width: 100%;
   max-width: 650px;
   height: 80px;
+  flex-shrink: 0;
   margin: 0 auto;
   padding: 8px 16px 6px 16px;
   background: #000000;
@@ -266,7 +274,7 @@ html.theme-sun .icon-sun-off {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 8px 16px;
+  padding: 8px 16px 6px 16px;
 }
 
 .hud-metrics.showing-startup-prompt .metric-card,
