@@ -623,16 +623,24 @@ describe('Module wakelock & light - Verrou d\'écran et Capteur de luminosité',
 });
 
 let cssContent = '';
+let htmlContent = '';
+let appJsContent = '';
 if (typeof process !== 'undefined' && process.versions && process.versions.node) {
   const fs = await import('node:fs');
   const path = await import('node:path');
   const url = await import('node:url');
   const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
   cssContent = fs.readFileSync(path.join(__dirname, '../css/style.css'), 'utf-8');
+  htmlContent = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf-8');
+  appJsContent = fs.readFileSync(path.join(__dirname, '../js/app.js'), 'utf-8');
 } else if (typeof window !== 'undefined' && window.fetch) {
   try {
     const res = await fetch('../css/style.css');
     cssContent = await res.text();
+    const resHtml = await fetch('../index.html');
+    htmlContent = await resHtml.text();
+    const resApp = await fetch('../js/app.js');
+    appJsContent = await resApp.text();
   } catch (e) {}
 }
 
@@ -758,6 +766,60 @@ describe('Feuille de styles (CSS) - Estompement adouci et alerte GPS perdu à 10
     assert.ok(
       /\.metric-label\s*\{[^}]*text-transform:\s*uppercase/i.test(cssContent),
       '.metric-label doit définir text-transform: uppercase'
+    );
+  });
+});
+
+describe('Rétroaction visuelle de réinitialisation (appui long et toast avec jauge d\'arrière-plan)', () => {
+  test('Le toast possède overflow: hidden et un pseudo-élément d\'arrière-plan pour la progression', () => {
+    assert.ok(
+      /\.toast\s*\{[^}]*overflow:\s*hidden/i.test(cssContent),
+      '.toast doit comporter overflow: hidden pour découper la jauge d\'arrière-plan'
+    );
+    assert.ok(
+      /\.toast::before\s*\{[^}]*position:\s*absolute/i.test(cssContent),
+      '.toast::before doit être positionné en absolu pour former le calque de progression'
+    );
+    assert.ok(
+      /\.toast::before\s*\{[^}]*width:\s*0%/i.test(cssContent),
+      '.toast::before doit démarrer à width: 0%'
+    );
+  });
+
+  test('La jauge en arrière-plan du toast s\'anime vers 100% avec .toast.progressing::before', () => {
+    assert.ok(
+      /\.toast\.progressing::before\s*\{[^}]*width:\s*100%/i.test(cssContent),
+      '.toast.progressing::before doit avoir width: 100%'
+    );
+    assert.ok(
+      /\.toast\.progressing::before\s*\{[^}]*transition:[^}]*width\s+1\.6s\s+linear/i.test(cssContent),
+      '.toast.progressing::before doit avoir transition: width 1.6s linear'
+    );
+  });
+
+  test('js/app.js affiche l\'instruction "Maintenez appuyé pour réinitialiser" avec .progressing à 400ms', () => {
+    assert.ok(
+      /resetFeedbackTimer|feedbackTimer/i.test(appJsContent),
+      'js/app.js doit déclarer un minuteur d\'amorce'
+    );
+    assert.ok(
+      /400/.test(appJsContent),
+      'js/app.js doit armer un délai de 400ms pour déclencher la rétroaction'
+    );
+    assert.ok(
+      /Maintenez appuyé pour réinitialiser/.test(appJsContent),
+      'js/app.js doit afficher l\'instruction "Maintenez appuyé pour réinitialiser"'
+    );
+    assert.ok(
+      /progressing/.test(appJsContent),
+      'js/app.js doit appliquer la classe progressing sur le toast'
+    );
+  });
+
+  test('js/app.js annule la jauge et masque le toast en cas de relâchement avant 2000ms', () => {
+    assert.ok(
+      /cancelResetFeedback/i.test(appJsContent),
+      'js/app.js doit définir cancelResetFeedback'
     );
   });
 });

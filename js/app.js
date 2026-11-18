@@ -367,6 +367,8 @@ hudContainer.addEventListener('click', (e) => {
 
 // 10. Gestuelle du bandeau des métriques : Tap (Pause/Reprise), Swipe (Carrousel), Appui long (Réinitialisation)
 let longPressTimer = null;
+let resetFeedbackTimer = null;
+let isResetFeedbackActive = false;
 let toastTimeout = null;
 let pointerStartX = 0;
 let pointerStartY = 0;
@@ -383,6 +385,26 @@ function showToast(message) {
   toastTimeout = setTimeout(() => {
     resetToastEl.classList.remove('show');
   }, displayMs);
+}
+
+function cancelResetFeedback() {
+  if (resetFeedbackTimer) {
+    clearTimeout(resetFeedbackTimer);
+    resetFeedbackTimer = null;
+  }
+  if (resetToastEl) {
+    resetToastEl.classList.remove('progressing');
+  }
+  if (isResetFeedbackActive) {
+    isResetFeedbackActive = false;
+    if (resetToastEl && resetToastEl.textContent === 'Maintenez appuyé pour réinitialiser') {
+      if (toastTimeout) {
+        clearTimeout(toastTimeout);
+        toastTimeout = null;
+      }
+      resetToastEl.classList.remove('show');
+    }
+  }
 }
 
 function switchMetricsView(targetView) {
@@ -418,11 +440,25 @@ function onMetricsPointerDown(e) {
   isSwiping = false;
   longPressTriggered = false;
 
-  if (longPressTimer) clearTimeout(longPressTimer);
+  cancelResetFeedback();
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+
   // Ne pas armer de réinitialisation par appui long si l'utilisateur appuie sur le bouton de démarrage
   if (!pointerDownOnStartupBtn) {
+    // Rétroaction visuelle d'amorce après 400ms d'appui continu
+    resetFeedbackTimer = setTimeout(() => {
+      isResetFeedbackActive = true;
+      resetToastEl.textContent = 'Maintenez appuyé pour réinitialiser';
+      resetToastEl.classList.add('show', 'progressing');
+    }, 400);
+
+    // Déclenchement de la réinitialisation après 2000ms
     longPressTimer = setTimeout(() => {
       longPressTriggered = true;
+      cancelResetFeedback();
       resetTripWithToast();
     }, 2000);
   }
@@ -439,8 +475,9 @@ function onMetricsPointerMove(e) {
   const deltaX = e.clientX - pointerStartX;
   const deltaY = e.clientY - pointerStartY;
 
-  // Déplacement significatif : annule le déclenchement de l'appui long
+  // Déplacement significatif : annule le déclenchement de l'appui long et la rétroaction
   if (Math.abs(deltaX) > 15 || Math.abs(deltaY) > 15) {
+    cancelResetFeedback();
     if (longPressTimer) {
       clearTimeout(longPressTimer);
       longPressTimer = null;
@@ -470,6 +507,7 @@ function onMetricsPointerUp(e) {
     tripMetricsEl.releasePointerCapture(e.pointerId);
   } catch (err) {}
 
+  cancelResetFeedback();
   if (longPressTimer) {
     clearTimeout(longPressTimer);
     longPressTimer = null;
@@ -513,6 +551,7 @@ function onMetricsPointerCancel(e) {
   try {
     tripMetricsEl.releasePointerCapture(e.pointerId);
   } catch (err) {}
+  cancelResetFeedback();
   if (longPressTimer) {
     clearTimeout(longPressTimer);
     longPressTimer = null;
