@@ -328,6 +328,7 @@ html.theme-sun .icon-sun-off {
   color: var(--metric-lbl-color);
   margin-bottom: 2px;
   line-height: 1.1;
+  text-transform: uppercase;
 }
 
 .metric-val {

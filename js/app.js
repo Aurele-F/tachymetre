@@ -237,13 +237,13 @@ function updateTripUI(tracker) {
   if (metricsView === 'total') {
     avgKmh = tracker.getTotalAverageSpeedKmh();
     durationSec = tracker.getTotalTimeSeconds();
-    if (metricLabelAvgEl) metricLabelAvgEl.textContent = 'MOY. TOTALE';
-    if (metricLabelDurationEl) metricLabelDurationEl.textContent = 'TEMPS TOTAL';
+    if (metricLabelAvgEl) metricLabelAvgEl.textContent = 'Moy. totale';
+    if (metricLabelDurationEl) metricLabelDurationEl.textContent = 'Temps total';
   } else {
     avgKmh = tracker.getMovingAverageSpeedKmh();
     durationSec = tracker.getMovingTimeSeconds();
-    if (metricLabelAvgEl) metricLabelAvgEl.textContent = 'MOYENNE';
-    if (metricLabelDurationEl) metricLabelDurationEl.textContent = 'TEMPS';
+    if (metricLabelAvgEl) metricLabelAvgEl.textContent = 'Moyenne';
+    if (metricLabelDurationEl) metricLabelDurationEl.textContent = 'Temps';
   }
 
   metricDistanceEl.innerHTML = `${formattedDist} <span class="unit">km</span>`;

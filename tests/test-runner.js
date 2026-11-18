@@ -754,6 +754,12 @@ describe('Feuille de styles (CSS) - Estompement adouci et alerte GPS perdu à 10
       '.startup-btn:active ne doit plus avoir de transform scale pour ne pas bouger au clic'
     );
   });
+  test('.metric-label applique text-transform: uppercase pour afficher les libellés en capitales via le CSS', () => {
+    assert.ok(
+      /\.metric-label\s*\{[^}]*text-transform:\s*uppercase/i.test(cssContent),
+      '.metric-label doit définir text-transform: uppercase'
+    );
+  });
 });
 
 export function getSummary() {
