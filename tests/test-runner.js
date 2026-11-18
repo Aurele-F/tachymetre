@@ -372,6 +372,41 @@ describe('Module trip - Calculateur de Trajet', () => {
     assert.closeTo(decision.distanceKm, 24.5, 0.01);
   });
 
+  test('Cycle de persistance de session : vierge au 1er lancement, puis détection du trajet antérieur lors des rechargements', () => {
+    // 1er lancement : aucun historique antérieur
+    const firstTracker = new TripTracker();
+    assert.strictEqual(TripTracker.determineStartupAction(null).action, 'none');
+    assert.strictEqual(firstTracker.getDistanceKm(), 0);
+    assert.strictEqual(firstTracker.getMovingTimeSeconds(), 0);
+
+    // Simulation d'une session de roulage (par exemple en mode démo)
+    const t0 = 1000000;
+    firstTracker.update(48.8584, 2.2945, 20, t0);
+    firstTracker.update(48.8589, 2.2945, 20, t0 + 10000); // 10s de déplacement
+    const snapshot = firstTracker.serialize();
+    assert.ok(snapshot.distanceMeters > 0);
+    assert.strictEqual(snapshot.movingTimeMs, 10000);
+
+    // Rechargement immédiat (par ex. F5 sur ?demo=1) : le trajet antérieur est détecté
+    const reloadNow = t0 + 12000; // 2s après la fin du trajet
+    const startupDecision = TripTracker.determineStartupAction(snapshot, reloadNow);
+    assert.strictEqual(startupDecision.action, 'prompt');
+    assert.strictEqual(startupDecision.defaultChoice, 'resume');
+    assert.strictEqual(startupDecision.buttonLabel, 'Nouveau trajet');
+
+    // Restauration du trajet antérieur dans la nouvelle session
+    const reloadedTracker = new TripTracker();
+    reloadedTracker.restore(snapshot);
+    assert.strictEqual(reloadedTracker.getDistanceKm(), firstTracker.getDistanceKm());
+    assert.strictEqual(reloadedTracker.getMovingTimeSeconds(), 10);
+    assert.strictEqual(reloadedTracker.getTotalTimeSeconds(), 10);
+
+    // Si l'utilisateur clique sur "Nouveau trajet"
+    reloadedTracker.reset();
+    assert.strictEqual(reloadedTracker.getDistanceKm(), 0);
+    assert.strictEqual(reloadedTracker.getMovingTimeSeconds(), 0);
+  });
+
   test('formatDistance applique les paliers adaptatifs (<10km: 2 déc, <100km: 1 déc, >=100km: 0 déc)', () => {
     // En dessous de 10 km : 2 décimales
     assert.strictEqual(formatDistance(0), '0.00');
@@ -698,6 +733,25 @@ describe('Feuille de styles (CSS) - Estompement adouci et alerte GPS perdu à 10
     assert.ok(
       /\.hud-metrics\s*\{[^}]*flex-shrink:\s*0/i.test(cssContent),
       '.hud-metrics doit avoir flex-shrink: 0 pour rester parfaitement figé'
+    );
+  });
+
+  test('.hud-metrics verrouille strictement sa hauteur (min/max 80px, overflow hidden, row-gap 0) et le bouton ne bouge pas au clic', () => {
+    assert.ok(
+      /\.hud-metrics\s*\{[^}]*min-height:\s*80px/i.test(cssContent) && /\.hud-metrics\s*\{[^}]*max-height:\s*80px/i.test(cssContent),
+      '.hud-metrics doit avoir min-height et max-height fixés à 80px'
+    );
+    assert.ok(
+      /\.hud-metrics\s*\{[^}]*overflow:\s*hidden/i.test(cssContent),
+      '.hud-metrics doit avoir overflow: hidden pour interdire tout débordement de contenu'
+    );
+    assert.ok(
+      /\.hud-metrics\s*\{[^}]*row-gap:\s*0/i.test(cssContent),
+      '.hud-metrics doit avoir row-gap: 0 pour ne pas cumuler de hauteur entre cartes et points'
+    );
+    assert.ok(
+      !/\.startup-btn:active\s*\{[^}]*scale/i.test(cssContent),
+      '.startup-btn:active ne doit plus avoir de transform scale pour ne pas bouger au clic'
     );
   });
 });

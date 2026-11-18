@@ -232,20 +232,24 @@ html.theme-sun .icon-sun-off {
 .hud-metrics {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  column-gap: 12px;
+  row-gap: 0;
   width: 100%;
   max-width: 650px;
   height: 80px;
+  min-height: 80px;
+  max-height: 80px;
   flex-shrink: 0;
   margin: 0 auto;
   padding: 8px 16px 6px 16px;
   background: #000000;
   border-radius: 14px;
-  transition: opacity 0.3s ease, transform 0.3s ease, outline 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease;
   cursor: pointer;
   touch-action: pan-y;
   position: relative;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .hud-metrics.metrics-hidden {
@@ -298,7 +302,7 @@ html.theme-sun .icon-sun-off {
   font-weight: 600;
   letter-spacing: 0.04em;
   cursor: pointer;
-  transition: opacity 0.2s ease, transform 0.1s ease;
+  transition: opacity 0.15s ease;
   user-select: none;
   -webkit-user-select: none;
   outline: none;
@@ -307,8 +311,7 @@ html.theme-sun .icon-sun-off {
 }
 
 .startup-btn:active {
-  transform: scale(0.98);
-  opacity: 0.8;
+  opacity: 0.75;
 }
 
 .metric-card {
@@ -316,7 +319,6 @@ html.theme-sun .icon-sun-off {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .metric-label {
@@ -324,13 +326,15 @@ html.theme-sun .icon-sun-off {
   font-weight: 600;
   letter-spacing: 0.06em;
   color: var(--metric-lbl-color);
-  margin-bottom: 3px;
+  margin-bottom: 2px;
+  line-height: 1.1;
 }
 
 .metric-val {
   font-size: clamp(1.2rem, 5.2vw, 1.8rem);
   font-weight: 700;
   color: var(--metric-val-color);
+  line-height: 1.1;
 }
 
 .metric-val .unit {
@@ -346,8 +350,8 @@ html.theme-sun .icon-sun-off {
   justify-content: center;
   align-items: center;
   gap: 8px;
-  margin-top: 4px;
-  padding-top: 2px;
+  margin-top: 2px;
+  padding-top: 0;
 }
 
 .carousel-dots .dot {
@@ -413,8 +417,11 @@ html.theme-sun .icon-sun-off {
 
   .hud-metrics {
     height: 52px;
+    min-height: 52px;
+    max-height: 52px;
     padding: 4px 12px;
-    gap: 16px;
+    column-gap: 16px;
+    row-gap: 0;
   }
 
   .metric-label {

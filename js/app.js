@@ -9,8 +9,12 @@ import { GeoManager, GPS_STATUS } from './geo.js';
 import { WakeLockManager } from './wakelock.js';
 import { LightManager } from './light.js';
 
-// Clés de persistance locale
-const STORAGE_KEY_TRIP = 'tachymetre_trip_data';
+// Détection du mode Démonstration / Simulation (?demo=1)
+const urlParams = new URLSearchParams(window.location.search);
+const isDemoMode = urlParams.get('demo') === '1';
+
+// Clés de persistance locale (clé dédiée en mode démo pour isoler les tests sans impacter le trajet réel)
+const STORAGE_KEY_TRIP = isDemoMode ? 'tachymetre_demo_trip_data' : 'tachymetre_trip_data';
 const STORAGE_KEY_METRICS_VIEW = 'tachymetre_metrics_view';
 
 // Récupération des éléments DOM
@@ -263,16 +267,9 @@ setInterval(() => {
   }
 }, 1000);
 
-// 5. Détection du mode Démonstration / Simulation (?demo=1)
-const urlParams = new URLSearchParams(window.location.search);
-const isDemoMode = urlParams.get('demo') === '1';
-
+// 5. Démarrage de la simulation ou du GPS
 if (isDemoMode) {
   console.log('[Tachymètre] Mode simulation activé (?demo=1)');
-  // En mode démo, démarrage propre à zéro pour garantir la parfaite crédibilité des données au démarrage (temps nul = distance nulle)
-  dismissStartupPrompt();
-  tripTracker.reset();
-  updateTripUI(tripTracker);
   geoManager.startSimulation();
 } else {
   geoManager.start();
