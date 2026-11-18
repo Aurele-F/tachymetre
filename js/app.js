@@ -269,14 +269,10 @@ const isDemoMode = urlParams.get('demo') === '1';
 
 if (isDemoMode) {
   console.log('[Tachymètre] Mode simulation activé (?demo=1)');
-  // En mode démo, si le compteur est à zéro, initialiser un trajet actif pour visualiser la dynamique
-  if (tripTracker.getDistanceKm() === 0) {
-    tripTracker.restore({
-      distanceMeters: 1420, // 1.42 km
-      movingTimeMs: 215000  // 3 min 35 s (moyenne ~23.8 km/h)
-    });
-    updateTripUI(tripTracker);
-  }
+  // En mode démo, démarrage propre à zéro pour garantir la parfaite crédibilité des données au démarrage (temps nul = distance nulle)
+  dismissStartupPrompt();
+  tripTracker.reset();
+  updateTripUI(tripTracker);
   geoManager.startSimulation();
 } else {
   geoManager.start();

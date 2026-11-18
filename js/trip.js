@@ -296,7 +296,8 @@ export class TripTracker {
     if (!data) return;
     this.distanceMeters = Number(data.distanceMeters) || 0;
     this.movingTimeMs = Number(data.movingTimeMs) || 0;
-    this.totalTimeMs = Number(data.totalTimeMs) || 0;
+    // Cohérence physique : le temps total (arrêts inclus) ne peut être inférieur au temps effectif de roulage
+    this.totalTimeMs = Math.max(Number(data.totalTimeMs) || 0, this.movingTimeMs);
     this.paused = Boolean(data.isPaused);
     this.lastSavedTimestamp = Number(data.lastSavedTimestamp) || null;
     this.lastMoveTimestamp = null;

@@ -170,6 +170,31 @@ describe('Module trip - Calculateur de Trajet', () => {
     assert.strictEqual(tracker.getAverageSpeedKmh(), 0);
   });
 
+  test('TripTracker garantit la cohérence des données au démarrage (temps nul = distance nulle)', () => {
+    const tracker = new TripTracker();
+    tracker.reset();
+    assert.strictEqual(tracker.getDistanceKm(), 0, 'La distance au démarrage doit être nulle');
+    assert.strictEqual(tracker.getMovingTimeSeconds(), 0, 'Le temps en mouvement au démarrage doit être nul');
+    assert.strictEqual(tracker.getTotalTimeSeconds(), 0, 'Le temps total au démarrage doit être nul');
+    assert.strictEqual(tracker.getFormattedDistance(), '0.00');
+    assert.strictEqual(tracker.formatDuration(0), '00:00');
+    assert.strictEqual(tracker.getMovingAverageSpeedKmh(), null, 'Moyenne non établie au démarrage');
+    assert.strictEqual(tracker.getTotalAverageSpeedKmh(), null, 'Moyenne totale non établie au démarrage');
+  });
+
+  test('TripTracker.restore garantit la cohérence physique entre totalTimeMs et movingTimeMs', () => {
+    const tracker = new TripTracker();
+    // Cas où totalTimeMs est omis dans les données sérialisées
+    tracker.restore({ distanceMeters: 1420, movingTimeMs: 215000 });
+    assert.strictEqual(tracker.getDistanceKm(), 1.42);
+    assert.strictEqual(tracker.getMovingTimeSeconds(), 215);
+    // Le temps total doit être au moins égal au temps de roulage (jamais 0 alors que movingTimeMs > 0)
+    assert.ok(tracker.getTotalTimeSeconds() >= 215, 'totalTimeSeconds doit valoir au moins 215s');
+    assert.strictEqual(tracker.getTotalTimeSeconds(), 215);
+    assert.ok(tracker.getTotalAverageSpeedKmh() !== null);
+    assert.closeTo(tracker.getTotalAverageSpeedKmh(), 23.776, 0.01);
+  });
+
   test('TripTracker démarre par défaut avec isPaused = false et totalTimeMs = 0', () => {
     const tracker = new TripTracker();
     assert.strictEqual(tracker.isPaused(), false);
